@@ -1,0 +1,11 @@
+{
+  "name": "caderno-de-estudos",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs"
+  }
+}

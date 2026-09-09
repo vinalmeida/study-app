@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f6fa" />
+  <meta name="description" content="Calendário pessoal para registrar e acompanhar seus estudos." />
+  <title>Caderno de Estudos</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="/" aria-label="Caderno de Estudos — início"><span class="brand-mark" aria-hidden="true">C</span><span>Caderno</span></a>
+      <nav class="main-nav"><button class="nav-item active" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário</button></nav>
+      <div class="subjects-panel">
+        <div class="section-heading"><span>Disciplinas</span><button class="icon-button" id="manage-subjects" type="button" aria-label="Gerenciar disciplinas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        <div id="subject-list" class="subject-list" aria-live="polite"></div>
+      </div>
+      <div class="sidebar-note"><span class="eyebrow">SEU RITMO</span><strong id="week-total">0h nesta semana</strong><div class="progress-track"><span id="week-progress"></span></div><small>Continue registrando um dia de cada vez.</small></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">C</span><strong>Caderno</strong></div>
+        <div class="greeting"><span class="eyebrow" id="today-label">HOJE</span><h1>Seu mês de estudos</h1></div>
+        <div class="top-actions"><button class="secondary-button mobile-only" id="mobile-subjects" type="button">Disciplinas</button><button class="primary-button" id="new-entry" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Novo registro</span></button></div>
+      </header>
+
+      <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+
+      <section class="workspace">
+        <div class="calendar-card">
+          <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
+          <div class="weekday-row" aria-hidden="true"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
+          <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
+        </div>
+        <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2></div><button class="small-primary" id="add-selected" type="button">+ Adicionar</button></div><div id="day-entries" class="day-entries"></div></aside>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="entry-dialog" class="modal">
+    <form id="entry-form" method="dialog" class="modal-card">
+      <div class="modal-header"><div><span class="eyebrow">NOVO REGISTRO</span><h2>O que você estudou?</h2></div><button class="icon-button close-dialog" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="form-grid">
+        <label>Data<input id="entry-date" name="date" type="date" required /></label>
+        <label>Disciplina<select id="entry-subject" name="subjectId" required></select></label>
+        <label class="full-width">Tempo de estudo<div class="duration-fields"><input name="hours" type="number" inputmode="numeric" min="0" max="23" value="1" aria-label="Horas" /><span>h</span><input name="minutes" type="number" inputmode="numeric" min="0" max="59" step="5" value="0" aria-label="Minutos" /><span>min</span></div></label>
+        <fieldset class="full-width"><legend>Tipo de estudo</legend><div class="study-type"><label><input type="radio" name="type" value="theory" checked /><span>Teoria</span></label><label><input type="radio" name="type" value="exercises" /><span>Exercícios</span></label></div></fieldset>
+        <label class="full-width">Anotações<textarea name="notes" rows="5" maxlength="1200" placeholder="Ex.: revisei funções de segundo grau e resolvi 15 questões..."></textarea></label>
+      </div>
+      <p id="entry-error" class="form-error" role="alert"></p>
+      <div class="modal-actions"><button class="secondary-button close-dialog" type="button">Cancelar</button><button class="primary-button" type="submit">Salvar registro</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="subjects-dialog" class="modal">
+    <div class="modal-card compact-card">
+      <div class="modal-header"><div><span class="eyebrow">ORGANIZAÇÃO</span><h2>Suas disciplinas</h2></div><button class="icon-button close-subjects" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <form id="subject-form" class="new-subject-row"><input name="name" maxlength="50" placeholder="Nome da disciplina" required /><select name="color" aria-label="Cor da disciplina"><option value="#4865ff">Azul</option><option value="#ed6a5a">Coral</option><option value="#16a085">Verde</option><option value="#9b5de5">Roxo</option><option value="#e3a008">Amarelo</option></select><button class="primary-button" type="submit">Adicionar</button></form>
+      <p id="subject-error" class="form-error" role="alert"></p><div id="manage-subject-list" class="manage-subject-list"></div>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
