@@ -12,7 +12,10 @@
   <div class="app-shell">
     <aside class="sidebar" aria-label="Navegação principal">
       <a class="brand" href="/" aria-label="Caderno de Estudos — início"><span class="brand-mark" aria-hidden="true">C</span><span>Caderno</span></a>
-      <nav class="main-nav"><button class="nav-item active" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário</button></nav>
+      <nav class="main-nav" aria-label="Seções">
+        <a class="nav-item active" href="/" data-view-link="calendar" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário</a>
+        <a class="nav-item" href="/historico" data-view-link="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Histórico</a>
+      </nav>
       <div class="subjects-panel">
         <div class="section-heading"><span>Disciplinas</span><button class="icon-button" id="manage-subjects" type="button" aria-label="Gerenciar disciplinas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
         <div id="subject-list" class="subject-list" aria-live="polite"></div>
@@ -23,19 +26,34 @@
     <main class="main-content">
       <header class="topbar">
         <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">C</span><strong>Caderno</strong></div>
-        <div class="greeting"><span class="eyebrow" id="today-label">HOJE</span><h1>Seu mês de estudos</h1></div>
+        <div class="greeting"><span class="eyebrow" id="today-label">HOJE</span><h1 id="page-title">Seu mês de estudos</h1></div>
         <div class="top-actions"><button class="secondary-button mobile-only" id="mobile-subjects" type="button">Disciplinas</button><button class="primary-button" id="new-entry" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Novo registro</span></button></div>
       </header>
 
-      <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+      <nav class="mobile-view-nav" aria-label="Seções">
+        <a class="mobile-view-link active" href="/" data-view-link="calendar" aria-current="page">Calendário</a>
+        <a class="mobile-view-link" href="/historico" data-view-link="history">Histórico</a>
+      </nav>
 
-      <section class="workspace">
-        <div class="calendar-card">
-          <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
-          <div class="weekday-row" aria-hidden="true"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
-          <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
+      <section id="calendar-view" class="page-view">
+        <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+
+        <section class="workspace">
+          <div class="calendar-card">
+            <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
+            <div class="weekday-row" aria-hidden="true"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
+            <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
+          </div>
+          <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2></div><button class="small-primary" id="add-selected" type="button">+ Adicionar</button></div><div id="day-entries" class="day-entries"></div></aside>
+        </section>
+      </section>
+
+      <section id="history-view" class="page-view" hidden>
+        <div class="history-intro">
+          <div><span class="eyebrow">LINHA DO TEMPO</span><h2>Histórico de estudos</h2><p>Seus registros organizados do mais recente ao mais antigo.</p></div>
+          <div class="history-total"><span>Tempo acumulado</span><strong id="history-total">0h</strong></div>
         </div>
-        <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2></div><button class="small-primary" id="add-selected" type="button">+ Adicionar</button></div><div id="day-entries" class="day-entries"></div></aside>
+        <div id="history-list" class="history-list" aria-live="polite"></div>
       </section>
     </main>
   </div>
