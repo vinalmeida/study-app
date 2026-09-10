@@ -28,7 +28,7 @@ pnpm dev
 
 Depois, acesse `http://localhost:5173` no navegador.
 
-O ambiente local utiliza dados demonstrativos mantidos apenas enquanto o servidor está em execução. A versão publicada utiliza armazenamento persistente e identifica cada usuário separadamente.
+> O ambiente local utiliza dados demonstrativos mantidos apenas enquanto o servidor está em execução. A versão publicada utiliza armazenamento persistente e identifica cada usuário separadamente.
 
 ## Gerar a versão de produção
 
