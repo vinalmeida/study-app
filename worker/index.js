@@ -1,5 +1,5 @@
 const json=(data,status=200)=>new Response(status===204?null:JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
-const asset=(body,type)=>new Response(body,{headers:{"content-type":type,"cache-control":"public, max-age=300","x-content-type-options":"nosniff","content-security-policy":"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'"}});
+const asset=(body,type)=>new Response(body,{headers:{"content-type":type,"cache-control":"public, max-age=300","x-content-type-options":"nosniff","content-security-policy":"default-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'"}});
 const userId=request=>request.headers.get("oai-authenticated-user-id");
 async function readBody(request){const length=Number(request.headers.get("content-length")||0);if(length>8000)throw new Error("PAYLOAD_TOO_LARGE");return request.json().catch(()=>{throw new Error("INVALID_JSON")})}
 function validDate(value){return /^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(`${value}T12:00:00Z`))}
