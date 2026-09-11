@@ -61,7 +61,7 @@
             <div class="weekday-row" aria-hidden="true"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
             <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
           </div>
-          <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2></div><button class="small-primary" id="add-selected" type="button">+ Adicionar</button></div><div id="day-entries" class="day-entries"></div></aside>
+          <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2></div><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div><div id="day-entries" class="day-entries"></div></aside>
         </section>
       </section>
 
@@ -79,7 +79,7 @@
     <form id="entry-form" method="dialog" class="modal-card">
       <div class="modal-header"><div><span class="eyebrow">NOVO REGISTRO</span><h2>O que você estudou?</h2></div><button class="icon-button close-dialog" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
       <div class="form-grid">
-        <label>Data<input id="entry-date" name="date" type="date" required /></label>
+        <label>Data<div class="date-control"><input id="entry-date" name="date" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data no formato dia, mês e ano" required /><button id="open-date-picker" class="date-picker-button" type="button" aria-label="Abrir calendário"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button><input id="entry-date-picker" class="native-date-picker" type="date" tabindex="-1" aria-hidden="true" /></div></label>
         <label>Disciplina<select id="entry-subject" name="subjectId" required></select></label>
         <label class="full-width">Tempo de estudo<div class="duration-fields"><input name="hours" type="number" inputmode="numeric" min="0" max="23" value="1" aria-label="Horas" /><span>h</span><input name="minutes" type="number" inputmode="numeric" min="0" max="59" step="5" value="0" aria-label="Minutos" /><span>min</span></div></label>
         <fieldset class="full-width"><legend>Tipo de estudo</legend><div class="study-type"><label><input type="radio" name="type" value="theory" checked /><span>Teoria</span></label><label><input type="radio" name="type" value="exercises" /><span>Exercícios</span></label></div></fieldset>

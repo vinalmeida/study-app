@@ -255,7 +255,8 @@ function openEntry(date = state.selectedDate) {
     return;
   }
   $("#entry-form").reset();
-  $("#entry-date").value = date;
+  $("#entry-date").value = formatBrazilianDate(date);
+  $("#entry-date-picker").value = date;
   $("#entry-error").textContent = "";
   $("#entry-dialog").showModal();
 }
@@ -332,7 +333,7 @@ $("#go-today").addEventListener("click", () => {
   state.selectedDate = isoDate(new Date());
   render();
 });
-$("#new-entry").addEventListener("click", () => openEntry(isoDate(new Date())));
+$("#new-entry").addEventListener("click", () => openEntry());
 $("#add-selected").addEventListener("click", () => openEntry());
 $("#manage-subjects").addEventListener("click", openSubjects);
 $("#mobile-subjects").addEventListener("click", openSubjects);
@@ -346,6 +347,12 @@ $$('.close-subjects').forEach((button) =>
 $("#entry-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
+  const studyDate = parseBrazilianDate(form.get("date"));
+  if (!studyDate) {
+    $("#entry-error").textContent = "Informe uma data válida no formato dd/mm/aaaa.";
+    $("#entry-date").focus();
+    return;
+  }
   const durationMinutes = Number(form.get("hours")) * 60 + Number(form.get("minutes"));
   if (durationMinutes < 1) {
     $("#entry-error").textContent = "Informe pelo menos 1 minuto de estudo.";
@@ -358,7 +365,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
         .insert({
           user_id: currentUser.id,
           subject_id: form.get("subjectId"),
-          studied_on: form.get("date"),
+          studied_on: studyDate,
           minutes: durationMinutes,
           kind: form.get("type") === "theory" ? "teoria" : "exercicios",
           notes: form.get("notes"),
@@ -376,6 +383,25 @@ $("#entry-form").addEventListener("submit", async (event) => {
     console.error(error);
     $("#entry-error").textContent = "Não foi possível salvar o registro.";
   }
+});
+
+$("#entry-date").addEventListener("input", (event) => {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+  event.target.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]
+    .filter(Boolean)
+    .join("/");
+});
+
+$("#open-date-picker").addEventListener("click", () => {
+  const picker = $("#entry-date-picker");
+  const typedDate = parseBrazilianDate($("#entry-date").value);
+  if (typedDate) picker.value = typedDate;
+  if (typeof picker.showPicker === "function") picker.showPicker();
+  else picker.click();
+});
+
+$("#entry-date-picker").addEventListener("change", (event) => {
+  if (event.target.value) $("#entry-date").value = formatBrazilianDate(event.target.value);
 });
 
 $("#subject-form").addEventListener("submit", async (event) => {
@@ -453,6 +479,24 @@ function isoDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function formatBrazilianDate(value) {
+  const [year, month, day] = String(value).split("-");
+  return year && month && day ? `${day}/${month}/${year}` : "";
+}
+function parseBrazilianDate(value) {
+  const match = String(value).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) {
+    return null;
+  }
   return `${year}-${month}-${day}`;
 }
 function formatDuration(minutes) {
