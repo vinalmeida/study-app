@@ -2,6 +2,10 @@
 
 Aplicação web responsiva para registrar e acompanhar atividades de estudo pelo computador, tablet ou celular.
 
+## Aplicação online
+
+Acesse a versão publicada em: [cadernoestudos.vercel.app](https://cadernoestudos.vercel.app)
+
 ## Funcionalidades atuais
 
 - Cadastro e remoção de disciplinas.
