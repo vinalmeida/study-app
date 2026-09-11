@@ -12,7 +12,7 @@
 .auth-card>p{margin:0;color:var(--muted);line-height:1.6}
 .oauth-button{width:100%;min-height:46px;margin-top:24px;border:1px solid #d5dbe7;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink);font-weight:700;cursor:pointer}
 .oauth-button:hover{background:#f7f8fb}
-.oauth-button span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#4285f4 0 35%,#34a853 35% 55%,#fbbc05 55% 75%,#ea4335 75%);color:#fff;font-size:.8rem;font-weight:850}
+.google-logo{width:18px;height:18px;display:block;flex:0 0 auto}
 .auth-separator{display:flex;align-items:center;gap:12px;margin:20px 0;color:#939bad;font-size:.72rem}
 .auth-separator:before,.auth-separator:after{content:"";height:1px;flex:1;background:var(--line)}
 .auth-form{display:grid;gap:9px}.auth-form label{font-size:.8rem;font-weight:700;color:#465068}.auth-form .primary-button{margin-top:5px}
