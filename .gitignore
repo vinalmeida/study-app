@@ -48,3 +48,6 @@ next-env.d.ts
 # documentação local de infraestrutura
 /infraestrutura-study-app.xmind
 /infraestrutura-study-app.md
+
+#arquivos .bat
+*.bat
