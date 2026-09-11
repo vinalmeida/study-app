@@ -23,6 +23,7 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 let currentUser = null;
 let toastTimer;
 let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
+let editingEntryId = null;
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -180,7 +181,7 @@ function renderSelectedDay() {
     entries
       .map((entry) => {
         const subject = subjectById(entry.subjectId);
-        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro">×</button></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
+        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg><span>Editar</span></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
       })
       .join("") ||
     `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`;
@@ -268,15 +269,29 @@ function setView(view, { updateUrl = true } = {}) {
   if (state.view === "history") renderHistory();
 }
 
-function openEntry(date = state.selectedDate) {
+function openEntry(date = state.selectedDate, entry = null) {
   if (!state.subjects.length) {
     openSubjects();
     showToast("Crie uma disciplina antes do primeiro registro.");
     return;
   }
-  $("#entry-form").reset();
-  $("#entry-date").value = formatBrazilianDate(date);
-  $("#entry-date-picker").value = date;
+  const form = $("#entry-form");
+  form.reset();
+  editingEntryId = entry?.id || null;
+  const studyDate = entry?.studyDate || date;
+  $("#entry-date").value = formatBrazilianDate(studyDate);
+  $("#entry-date-picker").value = studyDate;
+  $("#entry-subject").value = entry?.subjectId || state.subjects[0].id;
+  if (entry) {
+    form.elements.hours.value = Math.floor(entry.durationMinutes / 60);
+    form.elements.minutes.value = entry.durationMinutes % 60;
+    form.elements.type.value = entry.studyType;
+    form.elements.notes.value = entry.notes;
+  }
+  $("#entry-dialog-eyebrow").textContent = entry ? "EDITAR REGISTRO" : "NOVO REGISTRO";
+  $("#entry-dialog-title").textContent = entry ? "Atualize seu estudo" : "O que você estudou?";
+  $("#entry-submit").textContent = entry ? "Salvar alterações" : "Salvar registro";
+  $("#entry-submit").disabled = false;
   $("#entry-error").textContent = "";
   $("#entry-dialog").showModal();
 }
@@ -474,30 +489,45 @@ $("#entry-form").addEventListener("submit", async (event) => {
     $("#entry-error").textContent = "Informe pelo menos 1 minuto de estudo.";
     return;
   }
+  const entryId = editingEntryId;
+  const submitButton = $("#entry-submit");
+  const submitLabel = submitButton.textContent;
+  submitButton.disabled = true;
+  submitButton.textContent = "Salvando…";
   try {
+    const values = {
+      subject_id: form.get("subjectId"),
+      studied_on: studyDate,
+      minutes: durationMinutes,
+      kind: form.get("type") === "theory" ? "teoria" : "exercicios",
+      notes: form.get("notes"),
+    };
+    let request = supabase.from("study_logs");
+    request = entryId
+      ? request.update(values).eq("id", entryId)
+      : request.insert({ user_id: currentUser.id, ...values });
     const rows = assertResult(
-      await supabase
-        .from("study_logs")
-        .insert({
-          user_id: currentUser.id,
-          subject_id: form.get("subjectId"),
-          studied_on: studyDate,
-          minutes: durationMinutes,
-          kind: form.get("type") === "theory" ? "teoria" : "exercicios",
-          notes: form.get("notes"),
-        })
-        .select("id,subject_id,studied_on,minutes,kind,notes,created_at"),
+      await request.select("id,subject_id,studied_on,minutes,kind,notes,created_at"),
     );
     const entry = normalizeEntry(rows[0]);
-    state.entries.push(entry);
+    if (entryId) {
+      state.entries = state.entries.map((item) => (item.id === entryId ? entry : item));
+    } else {
+      state.entries.push(entry);
+    }
     state.selectedDate = entry.studyDate;
     state.month = new Date(`${entry.studyDate}T12:00:00`);
     $("#entry-dialog").close();
     render();
-    showToast("Registro salvo.");
+    showToast(entryId ? "Registro atualizado." : "Registro salvo.");
   } catch (error) {
     console.error(error);
-    $("#entry-error").textContent = "Não foi possível salvar o registro.";
+    $("#entry-error").textContent = entryId
+      ? "Não foi possível atualizar o registro."
+      : "Não foi possível salvar o registro.";
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = submitLabel;
   }
 });
 
@@ -575,6 +605,12 @@ $("#manage-subject-list").addEventListener("click", async (event) => {
 });
 
 $("#day-entries").addEventListener("click", async (event) => {
+  const editButton = event.target.closest("[data-edit-entry]");
+  if (editButton) {
+    const entry = state.entries.find((item) => item.id === editButton.dataset.editEntry);
+    if (entry) openEntry(entry.studyDate, entry);
+    return;
+  }
   const button = event.target.closest("[data-delete-entry]");
   if (!button || !confirm("Remover este registro de estudo?")) return;
   try {
