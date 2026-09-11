@@ -413,7 +413,11 @@ $("#subject-form").addEventListener("submit", async (event) => {
     const rows = assertResult(
       await supabase
         .from("subjects")
-        .insert({ user_id: currentUser.id, name: form.get("name"), color: form.get("color") })
+        .insert({
+          user_id: currentUser.id,
+          name: form.get("subjectName"),
+          color: form.get("color"),
+        })
         .select("id,name,color"),
     );
     const subject = rows[0];
