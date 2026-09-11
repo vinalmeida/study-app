@@ -12,16 +12,64 @@
   <section id="auth-screen" class="auth-screen">
     <div class="auth-card">
       <span class="brand-mark" aria-hidden="true">C</span>
-      <span class="eyebrow">CADERNO DE ESTUDOS</span>
-      <h1>Seu ritmo, seus registros.</h1>
-      <p>Entre com sua conta Google ou receba um link seguro por e-mail, sem precisar criar senha.</p>
-      <button id="google-sign-in" class="oauth-button" type="button"><span aria-hidden="true">G</span>Continuar com Google</button>
-      <div class="auth-separator"><span>ou por e-mail</span></div>
-      <form id="auth-form" class="auth-form">
-        <label for="auth-email">E-mail</label>
-        <input id="auth-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required />
-        <button class="primary-button" type="submit">Receber link de acesso</button>
-      </form>
+      <section class="auth-panel" data-auth-view="login">
+        <span class="eyebrow">CADERNO DE ESTUDOS</span>
+        <h1>Entre na sua conta</h1>
+        <p>Acesse seus registros e continue acompanhando seus estudos.</p>
+        <form id="login-form" class="auth-form">
+          <label for="login-email">E-mail</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required />
+          <div class="auth-label-row"><label for="login-password">Senha</label><a href="#recuperar-senha" data-auth-target="forgot">Esqueci minha senha</a></div>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          <button class="primary-button" type="submit">Entrar</button>
+        </form>
+        <div class="auth-separator"><span>ou</span></div>
+        <button id="google-sign-in" class="oauth-button" type="button"><span aria-hidden="true">G</span>Continuar com Google</button>
+        <p class="auth-switch">Não tem uma conta? <a href="#cadastro" data-auth-target="signup">Cadastre-se</a></p>
+      </section>
+
+      <section class="auth-panel" data-auth-view="signup" hidden>
+        <span class="eyebrow">CRIE SUA CONTA</span>
+        <h1>Comece seus registros</h1>
+        <p>Cadastre seu e-mail e escolha uma senha segura.</p>
+        <form id="signup-form" class="auth-form">
+          <label for="signup-email">E-mail</label>
+          <input id="signup-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required />
+          <label for="signup-password">Senha</label>
+          <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+          <small class="password-hint">Use pelo menos 8 caracteres.</small>
+          <label for="signup-password-confirmation">Confirme a senha</label>
+          <input id="signup-password-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="8" required />
+          <button class="primary-button" type="submit">Criar conta</button>
+        </form>
+        <p class="auth-switch">Já tem uma conta? <a href="#entrar" data-auth-target="login">Entrar</a></p>
+      </section>
+
+      <section class="auth-panel" data-auth-view="forgot" hidden>
+        <span class="eyebrow">RECUPERAÇÃO DE ACESSO</span>
+        <h1>Esqueceu sua senha?</h1>
+        <p>Informe seu e-mail para receber o link de recuperação.</p>
+        <form id="forgot-form" class="auth-form">
+          <label for="forgot-email">E-mail</label>
+          <input id="forgot-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required />
+          <button class="primary-button" type="submit">Enviar link de recuperação</button>
+        </form>
+        <p class="auth-switch"><a href="#entrar" data-auth-target="login">Voltar para o login</a></p>
+      </section>
+
+      <section class="auth-panel" data-auth-view="reset" hidden>
+        <span class="eyebrow">NOVA SENHA</span>
+        <h1>Defina sua nova senha</h1>
+        <p>Escolha uma senha diferente e com pelo menos 8 caracteres.</p>
+        <form id="reset-form" class="auth-form">
+          <label for="reset-password">Nova senha</label>
+          <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+          <label for="reset-password-confirmation">Confirme a nova senha</label>
+          <input id="reset-password-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="8" required />
+          <button class="primary-button" type="submit">Atualizar senha</button>
+        </form>
+      </section>
+
       <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
     </div>
   </section>

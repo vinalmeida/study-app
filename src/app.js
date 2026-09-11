@@ -22,6 +22,7 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 let currentUser = null;
 let toastTimer;
+let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -65,11 +66,24 @@ async function loadState() {
   }
 }
 
+function setAuthMessage(message) {
+  $("#auth-message").textContent = message;
+}
+
+function setAuthView(view) {
+  authView = ["login", "signup", "forgot", "reset"].includes(view) ? view : "login";
+  $$('[data-auth-view]').forEach((panel) => {
+    panel.hidden = panel.dataset.authView !== authView;
+  });
+  setAuthMessage("");
+}
+
 function showSession(session) {
   currentUser = session?.user || null;
-  $("#auth-screen").hidden = Boolean(currentUser);
-  $("#app-shell").hidden = !currentUser;
-  if (currentUser) loadState();
+  const isPasswordRecovery = authView === "reset";
+  $("#auth-screen").hidden = Boolean(currentUser) && !isPasswordRecovery;
+  $("#app-shell").hidden = !currentUser || isPasswordRecovery;
+  if (currentUser && !isPasswordRecovery) loadState();
   else {
     state.subjects = [];
     state.entries = [];
@@ -78,17 +92,23 @@ function showSession(session) {
 }
 
 async function initializeAuth() {
+  setAuthView(authView);
   if (!supabase) {
-    $("#auth-message").textContent =
-      "Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para iniciar.";
-    $("#auth-form button").disabled = true;
-    $("#google-sign-in").disabled = true;
+    setAuthMessage("Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para iniciar.");
+    $$(".auth-form button, #google-sign-in").forEach((button) => {
+      button.disabled = true;
+    });
     return;
   }
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      setAuthView("reset");
+    }
+    showSession(session);
+  });
   const { data, error } = await supabase.auth.getSession();
-  if (error) $("#auth-message").textContent = "Não foi possível verificar sua sessão.";
+  if (error) setAuthMessage("Não foi possível verificar sua sessão.");
   showSession(data.session);
-  supabase.auth.onAuthStateChange((_event, session) => showSession(session));
 }
 
 function render() {
@@ -270,7 +290,7 @@ $("#google-sign-in").addEventListener("click", async () => {
   if (!supabase) return;
   const button = $("#google-sign-in");
   button.disabled = true;
-  $("#auth-message").textContent = "Abrindo o acesso com Google…";
+  setAuthMessage("Abrindo o acesso com Google…");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: location.origin },
@@ -278,28 +298,124 @@ $("#google-sign-in").addEventListener("click", async () => {
   if (error) {
     console.error(error);
     button.disabled = false;
-    $("#auth-message").textContent = "Não foi possível iniciar o acesso com Google.";
+    setAuthMessage("Não foi possível iniciar o acesso com Google.");
   }
 });
 
-$("#auth-form").addEventListener("submit", async (event) => {
+$$('[data-auth-target]').forEach((link) =>
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (link.dataset.authTarget === "forgot") {
+      $("#forgot-email").value = $("#login-email").value;
+    }
+    setAuthView(link.dataset.authTarget);
+  }),
+);
+
+$("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!supabase) return;
-  const button = event.currentTarget.querySelector("button");
-  const email = String(new FormData(event.currentTarget).get("email")).trim();
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const button = formElement.querySelector('button[type="submit"]');
   button.disabled = true;
-  $("#auth-message").textContent = "Enviando seu link…";
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
+  setAuthMessage("Entrando…");
+  const { error } = await supabase.auth.signInWithPassword({
+    email: String(form.get("email")).trim(),
+    password: String(form.get("password")),
+  });
+  button.disabled = false;
+  if (error) {
+    console.error(error);
+    setAuthMessage("Não foi possível entrar. Confira seu e-mail e sua senha.");
+  }
+});
+
+$("#signup-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabase) return;
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const password = String(form.get("password"));
+  const passwordConfirmation = String(form.get("passwordConfirmation"));
+  if (password !== passwordConfirmation) {
+    setAuthMessage("As senhas informadas não são iguais.");
+    return;
+  }
+  const button = formElement.querySelector('button[type="submit"]');
+  button.disabled = true;
+  setAuthMessage("Criando sua conta…");
+  const { data, error } = await supabase.auth.signUp({
+    email: String(form.get("email")).trim(),
+    password,
     options: { emailRedirectTo: location.origin },
   });
   button.disabled = false;
-  $("#auth-message").textContent = error
-    ? "Não foi possível enviar o link. Confira o e-mail e tente novamente."
-    : "Link enviado. Confira sua caixa de entrada.";
+  if (error) {
+    console.error(error);
+    setAuthMessage("Não foi possível criar a conta. Confira os dados e tente novamente.");
+    return;
+  }
+  formElement.reset();
+  if (!data.session) {
+    setAuthView("login");
+    setAuthMessage("Conta criada. Confira seu e-mail para confirmar o cadastro antes de entrar.");
+  }
+});
+
+$("#forgot-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabase) return;
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const button = formElement.querySelector('button[type="submit"]');
+  button.disabled = true;
+  setAuthMessage("Enviando o link de recuperação…");
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    String(form.get("email")).trim(),
+    { redirectTo: `${location.origin}/?recovery=1` },
+  );
+  button.disabled = false;
+  if (error) {
+    console.error(error);
+    setAuthMessage("Não foi possível enviar o link. Tente novamente em alguns instantes.");
+    return;
+  }
+  setAuthMessage("Se existir uma conta com esse e-mail, enviaremos um link de recuperação.");
+});
+
+$("#reset-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabase) return;
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const password = String(form.get("password"));
+  const passwordConfirmation = String(form.get("passwordConfirmation"));
+  if (password !== passwordConfirmation) {
+    setAuthMessage("As senhas informadas não são iguais.");
+    return;
+  }
+  const button = formElement.querySelector('button[type="submit"]');
+  button.disabled = true;
+  setAuthMessage("Atualizando sua senha…");
+  const { error } = await supabase.auth.updateUser({ password });
+  button.disabled = false;
+  if (error) {
+    console.error(error);
+    setAuthMessage("Não foi possível atualizar a senha. Solicite um novo link de recuperação.");
+    return;
+  }
+  const url = new URL(location.href);
+  url.searchParams.delete("recovery");
+  history.replaceState({}, "", `${url.pathname}${url.search}`);
+  authView = "login";
+  const { data } = await supabase.auth.getSession();
+  showSession(data.session);
+  showToast("Senha atualizada com sucesso.");
 });
 
 $("#sign-out").addEventListener("click", async () => {
+  setAuthView("login");
   if (supabase) await supabase.auth.signOut();
 });
 $("#calendar-grid").addEventListener("click", (event) => {

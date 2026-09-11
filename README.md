@@ -9,6 +9,8 @@ Acesse a versão publicada em: [cadernoestudos.vercel.app](https://cadernoestudo
 ## Funcionalidades atuais
 
 - Cadastro e remoção de disciplinas.
+- Acesso com e-mail e senha ou conta Google.
+- Cadastro de conta e recuperação de senha por e-mail.
 - Calendário mensal com os registros de cada dia.
 - Registro de tempo de estudo.
 - Classificação entre teoria e exercícios.
@@ -51,4 +53,4 @@ pnpm build
 ## Status
 
 Em desenvolvimento. A versão atual contém calendário, histórico, acesso com Google
-ou magic link e isolamento dos registros por usuário.
+ou e-mail e senha, recuperação de acesso e isolamento dos registros por usuário.
