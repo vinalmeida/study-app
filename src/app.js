@@ -380,7 +380,9 @@ $("#entry-form").addEventListener("submit", async (event) => {
 
 $("#subject-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  $("#subject-error").textContent = "";
   try {
     const rows = assertResult(
       await supabase
@@ -391,7 +393,7 @@ $("#subject-form").addEventListener("submit", async (event) => {
     const subject = rows[0];
     state.subjects.push(subject);
     state.subjects.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-    event.currentTarget.reset();
+    formElement.reset();
     renderSubjects();
     showToast("Disciplina adicionada.");
   } catch (error) {
