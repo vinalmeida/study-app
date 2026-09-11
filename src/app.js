@@ -159,14 +159,15 @@ function renderCalendar() {
   const month = state.month.getMonth();
   $("#month-title").textContent = `${monthNames[month]} ${year}`;
   const first = new Date(year, month, 1);
-  const mondayOffset = (first.getDay() + 6) % 7;
-  const start = new Date(year, month, 1 - mondayOffset);
+  const weekStartOffset = first.getDay();
+  const start = new Date(year, month, 1 - weekStartOffset);
   const today = isoDate(new Date());
   let html = "";
   for (let index = 0; index < 42; index += 1) {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     const iso = isoDate(date);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     const entries = state.entries.filter((entry) => entry.studyDate === iso);
     const chips = entries
       .slice(0, 2)
@@ -175,7 +176,7 @@ function renderCalendar() {
         return `<div class="event-chip" style="--chip:${subject?.color || colors[0]}" data-duration="${formatDuration(entry.durationMinutes)}"><span>${escapeHtml(subject?.name || "Disciplina")} · ${formatDuration(entry.durationMinutes)}</span></div>`;
       })
       .join("");
-    html += `<button type="button" role="gridcell" class="calendar-day ${date.getMonth() !== month ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${entries.length ? `, ${entries.length} registros` : ""}"><span class="day-number">${date.getDate()}</span><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
+    html += `<button type="button" role="gridcell" class="calendar-day ${isWeekend ? "weekend" : ""} ${date.getMonth() !== month ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${entries.length ? `, ${entries.length} registros` : ""}"><span class="day-number">${date.getDate()}</span><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
   }
   $("#calendar-grid").innerHTML = html;
 }
