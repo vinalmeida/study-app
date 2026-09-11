@@ -28,7 +28,9 @@ pnpm dev
 
 Depois, acesse `http://localhost:5173` no navegador.
 
-> O ambiente local utiliza dados demonstrativos mantidos apenas enquanto o servidor está em execução. A versão publicada utiliza armazenamento persistente e identifica cada usuário separadamente.
+Crie um arquivo `.env.local` a partir de `.env.example` e informe a URL e a chave
+pública (`anon`) do projeto Supabase. O banco deve receber a migration presente
+em `supabase/migrations`.
 
 ## Gerar a versão de produção
 
@@ -38,10 +40,11 @@ pnpm build
 
 ## Tecnologias
 
-- HTML, CSS e JavaScript.
-- Cloudflare Workers e D1.
-- Codex Sites para hospedagem.
+- HTML, CSS, JavaScript e Vite.
+- Supabase Auth, Postgres e Row Level Security.
+- Vercel para build, CDN e hospedagem.
 
 ## Status
 
-Em desenvolvimento. A versão atual contém a experiência principal de calendário; novas visualizações e documentação mais detalhada serão adicionadas progressivamente.
+Em desenvolvimento. A versão atual contém calendário, histórico, acesso com Google
+ou magic link e isolamento dos registros por usuário.
