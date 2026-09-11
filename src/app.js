@@ -9,7 +9,17 @@ const supabase = isConfigured
     })
   : null;
 
-const colors = ["#4865ff", "#ed6a5a", "#16a085", "#9b5de5", "#e3a008"];
+const subjectColors = [
+  { value: "#4865ff", label: "Azul índigo" },
+  { value: "#9b5de5", label: "Violeta" },
+  { value: "#c755a5", label: "Rosa amora" },
+  { value: "#ed6a5a", label: "Coral" },
+  { value: "#d99b22", label: "Âmbar" },
+  { value: "#57a64e", label: "Verde folha" },
+  { value: "#16a085", label: "Verde jade" },
+  { value: "#2d8fb8", label: "Azul ciano" },
+];
+const colors = subjectColors.map((color) => color.value);
 const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const state = {
   month: new Date(),
@@ -296,6 +306,40 @@ function openEntry(date = state.selectedDate, entry = null) {
   $("#entry-dialog").showModal();
 }
 
+function renderSubjectColorOptions() {
+  $("#subject-color-options").innerHTML = subjectColors
+    .map(
+      (color) =>
+        `<button class="color-option" type="button" role="option" data-subject-color="${color.value}" aria-selected="false"><span class="color-swatch" style="--subject-color:${color.value}" aria-hidden="true"></span><span>${color.label}</span></button>`,
+    )
+    .join("");
+  setSubjectColor(colors[0]);
+}
+
+function setSubjectColor(value) {
+  const color = subjectColors.find((item) => item.value === value) || subjectColors[0];
+  $("#subject-color").value = color.value;
+  $("#subject-color-label").textContent = color.label;
+  $("#subject-color-swatch").style.setProperty("--subject-color", color.value);
+  $("#subject-color-trigger").setAttribute("aria-label", `Cor da disciplina: ${color.label}`);
+  $$("[data-subject-color]").forEach((option) => {
+    option.setAttribute("aria-selected", String(option.dataset.subjectColor === color.value));
+  });
+}
+
+function closeSubjectColorOptions({ focusTrigger = false } = {}) {
+  $("#subject-color-options").hidden = true;
+  $("#subject-color-trigger").setAttribute("aria-expanded", "false");
+  if (focusTrigger) $("#subject-color-trigger").focus();
+}
+
+function openSubjectColorOptions() {
+  const options = $("#subject-color-options");
+  options.hidden = false;
+  $("#subject-color-trigger").setAttribute("aria-expanded", "true");
+  options.querySelector('[aria-selected="true"]')?.focus();
+}
+
 function openSubjects() {
   $("#subject-error").textContent = "";
   $("#subjects-dialog").showModal();
@@ -472,7 +516,10 @@ $$('.close-dialog').forEach((button) =>
   button.addEventListener("click", () => $("#entry-dialog").close()),
 );
 $$('.close-subjects').forEach((button) =>
-  button.addEventListener("click", () => $("#subjects-dialog").close()),
+  button.addEventListener("click", () => {
+    closeSubjectColorOptions();
+    $("#subjects-dialog").close();
+  }),
 );
 
 $("#entry-form").addEventListener("submit", async (event) => {
@@ -550,6 +597,50 @@ $("#entry-date-picker").addEventListener("change", (event) => {
   if (event.target.value) $("#entry-date").value = formatBrazilianDate(event.target.value);
 });
 
+$("#subject-color-trigger").addEventListener("click", () => {
+  if ($("#subject-color-options").hidden) openSubjectColorOptions();
+  else closeSubjectColorOptions();
+});
+
+$("#subject-color-options").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-subject-color]");
+  if (!option) return;
+  setSubjectColor(option.dataset.subjectColor);
+  closeSubjectColorOptions({ focusTrigger: true });
+});
+
+$(".color-select").addEventListener("keydown", (event) => {
+  const options = $$("[data-subject-color]");
+  if (event.key === "Tab") {
+    closeSubjectColorOptions();
+    return;
+  }
+  if (event.key === "Escape") {
+    closeSubjectColorOptions({ focusTrigger: true });
+    return;
+  }
+  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  if ($("#subject-color-options").hidden) {
+    openSubjectColorOptions();
+    return;
+  }
+  const currentIndex = options.indexOf(document.activeElement);
+  const nextIndex =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? options.length - 1
+        : event.key === "ArrowDown"
+          ? (currentIndex + 1) % options.length
+          : (currentIndex - 1 + options.length) % options.length;
+  options[nextIndex].focus();
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".color-select")) closeSubjectColorOptions();
+});
+
 $("#subject-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const formElement = event.currentTarget;
@@ -570,6 +661,8 @@ $("#subject-form").addEventListener("submit", async (event) => {
     state.subjects.push(subject);
     state.subjects.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
     formElement.reset();
+    setSubjectColor(colors[0]);
+    closeSubjectColorOptions();
     renderSubjects();
     showToast("Disciplina adicionada.");
   } catch (error) {
@@ -690,5 +783,6 @@ function showToast(message) {
   toastTimer = setTimeout(() => element.classList.remove("show"), 2600);
 }
 
+renderSubjectColorOptions();
 render();
 initializeAuth();
