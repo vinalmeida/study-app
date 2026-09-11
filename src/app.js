@@ -168,6 +168,14 @@ function renderCalendar() {
     date.setDate(start.getDate() + index);
     const iso = isoDate(date);
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const isOutsideMonth = date.getMonth() !== month;
+    const isMonthBoundary =
+      isOutsideMonth &&
+      (date.getDate() === 1 ||
+        date.getDate() === new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate());
+    const dayLabel = isMonthBoundary
+      ? date.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+      : date.getDate();
     const entries = state.entries.filter((entry) => entry.studyDate === iso);
     const chips = entries
       .slice(0, 2)
@@ -176,7 +184,7 @@ function renderCalendar() {
         return `<div class="event-chip" style="--chip:${subject?.color || colors[0]}" data-duration="${formatDuration(entry.durationMinutes)}"><span>${escapeHtml(subject?.name || "Disciplina")} · ${formatDuration(entry.durationMinutes)}</span></div>`;
       })
       .join("");
-    html += `<button type="button" role="gridcell" class="calendar-day ${isWeekend ? "weekend" : ""} ${date.getMonth() !== month ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${entries.length ? `, ${entries.length} registros` : ""}"><span class="day-number">${date.getDate()}</span><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
+    html += `<button type="button" role="gridcell" class="calendar-day ${isWeekend ? "weekend" : ""} ${isOutsideMonth ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${entries.length ? `, ${entries.length} registros` : ""}"><span class="day-number ${isMonthBoundary ? "month-boundary" : ""}">${dayLabel}</span><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
   }
   $("#calendar-grid").innerHTML = html;
 }
