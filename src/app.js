@@ -34,6 +34,7 @@ let currentUser = null;
 let toastTimer;
 let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
 let editingEntryId = null;
+let editingSubjectId = null;
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -147,7 +148,7 @@ function renderSubjects() {
     state.subjects
       .map(
         (subject) =>
-          `<div class="manage-row"><span class="subject-dot" style="background:${subject.color}"></span><strong>${escapeHtml(subject.name)}</strong><button class="danger-button" type="button" data-delete-subject="${subject.id}">Remover</button></div>`,
+          `<div class="manage-row"><span class="subject-dot" style="background:${subject.color}"></span><strong>${escapeHtml(subject.name)}</strong><div class="manage-actions"><button class="edit-subject-button" type="button" data-edit-subject="${subject.id}">Editar</button><button class="danger-button" type="button" data-delete-subject="${subject.id}">Remover</button></div></div>`,
       )
       .join("") ||
     `<div class="empty-state"><strong>Nenhuma disciplina ainda</strong><p>Crie uma acima para começar.</p></div>`;
@@ -317,7 +318,11 @@ function renderSubjectColorOptions() {
 }
 
 function setSubjectColor(value) {
-  const color = subjectColors.find((item) => item.value === value) || subjectColors[0];
+  const color =
+    subjectColors.find((item) => item.value === value) || {
+      value,
+      label: value === "#e3a008" ? "Amarelo atual" : "Cor atual",
+    };
   $("#subject-color").value = color.value;
   $("#subject-color-label").textContent = color.label;
   $("#subject-color-swatch").style.setProperty("--subject-color", color.value);
@@ -337,11 +342,37 @@ function openSubjectColorOptions() {
   const options = $("#subject-color-options");
   options.hidden = false;
   $("#subject-color-trigger").setAttribute("aria-expanded", "true");
-  options.querySelector('[aria-selected="true"]')?.focus();
+  (options.querySelector('[aria-selected="true"]') || options.firstElementChild)?.focus();
+}
+
+function resetSubjectForm() {
+  editingSubjectId = null;
+  $("#subject-form").reset();
+  setSubjectColor(colors[0]);
+  closeSubjectColorOptions();
+  $("#subject-submit").textContent = "Adicionar";
+  $("#subject-edit-bar").hidden = true;
+  $("#subject-edit-label").textContent = "";
+  $("#subject-error").textContent = "";
+}
+
+function startSubjectEdit(subject) {
+  editingSubjectId = subject.id;
+  closeSubjectColorOptions();
+  const nameInput = $("#subject-form").elements.subjectName;
+  nameInput.value = subject.name;
+  setSubjectColor(subject.color);
+  $("#subject-submit").textContent = "Salvar";
+  $("#subject-edit-label").textContent = `Editando ${subject.name}`;
+  $("#subject-edit-bar").hidden = false;
+  $("#subject-error").textContent = "";
+  $("#subjects-dialog .modal-card").scrollTop = 0;
+  nameInput.focus();
+  nameInput.select();
 }
 
 function openSubjects() {
-  $("#subject-error").textContent = "";
+  resetSubjectForm();
   $("#subjects-dialog").showModal();
 }
 
@@ -521,6 +552,7 @@ $$('.close-subjects').forEach((button) =>
     $("#subjects-dialog").close();
   }),
 );
+$("#subjects-dialog").addEventListener("close", resetSubjectForm);
 
 $("#entry-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -641,40 +673,68 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest(".color-select")) closeSubjectColorOptions();
 });
 
+$("#subject-cancel-edit").addEventListener("click", () => {
+  resetSubjectForm();
+  $("#subject-form").elements.subjectName.focus();
+});
+
 $("#subject-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const formElement = event.currentTarget;
   const form = new FormData(formElement);
+  const subjectId = editingSubjectId;
+  const submitButton = $("#subject-submit");
+  const submitLabel = submitButton.textContent;
   $("#subject-error").textContent = "";
+  submitButton.disabled = true;
+  submitButton.textContent = "Salvando…";
+  let saved = false;
   try {
+    const values = {
+      name: String(form.get("subjectName")).trim(),
+      color: form.get("color"),
+    };
+    let request = supabase.from("subjects");
+    request = subjectId
+      ? request.update(values).eq("id", subjectId)
+      : request.insert({ user_id: currentUser.id, ...values });
     const rows = assertResult(
-      await supabase
-        .from("subjects")
-        .insert({
-          user_id: currentUser.id,
-          name: form.get("subjectName"),
-          color: form.get("color"),
-        })
-        .select("id,name,color"),
+      await request.select("id,name,color"),
     );
     const subject = rows[0];
-    state.subjects.push(subject);
+    if (subjectId) {
+      state.subjects = state.subjects.map((item) =>
+        item.id === subjectId ? subject : item,
+      );
+    } else {
+      state.subjects.push(subject);
+    }
     state.subjects.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-    formElement.reset();
-    setSubjectColor(colors[0]);
-    closeSubjectColorOptions();
-    renderSubjects();
-    showToast("Disciplina adicionada.");
+    saved = true;
+    resetSubjectForm();
+    render();
+    showToast(subjectId ? "Disciplina atualizada." : "Disciplina adicionada.");
   } catch (error) {
     console.error(error);
     $("#subject-error").textContent =
       error.code === "23505"
         ? "Você já possui uma disciplina com esse nome."
-        : "Não foi possível adicionar a disciplina.";
+        : subjectId
+          ? "Não foi possível atualizar a disciplina."
+          : "Não foi possível adicionar a disciplina.";
+  } finally {
+    submitButton.disabled = false;
+    if (!saved) submitButton.textContent = submitLabel;
   }
 });
 
 $("#manage-subject-list").addEventListener("click", async (event) => {
+  const editButton = event.target.closest("[data-edit-subject]");
+  if (editButton) {
+    const subject = subjectById(editButton.dataset.editSubject);
+    if (subject) startSubjectEdit(subject);
+    return;
+  }
   const button = event.target.closest("[data-delete-subject]");
   if (!button) return;
   const subject = subjectById(button.dataset.deleteSubject);
@@ -689,6 +749,7 @@ $("#manage-subject-list").addEventListener("click", async (event) => {
     state.subjects = state.subjects.filter(
       (item) => item.id !== button.dataset.deleteSubject,
     );
+    if (editingSubjectId === button.dataset.deleteSubject) resetSubjectForm();
     render();
     showToast("Disciplina removida.");
   } catch (error) {

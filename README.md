@@ -8,7 +8,7 @@ Acesse a versão publicada em: [cadernoestudos.vercel.app](https://cadernoestudo
 
 ## Funcionalidades atuais
 
-- Cadastro e remoção de disciplinas.
+- Cadastro, edição e remoção de disciplinas.
 - Acesso com e-mail e senha ou conta Google.
 - Cadastro de conta e recuperação de senha por e-mail.
 - Calendário mensal com os registros de cada dia.
