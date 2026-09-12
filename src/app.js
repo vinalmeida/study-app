@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { calculateEndTime, normalizeStudyTime } from "./study-time.js";
+import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -41,6 +42,7 @@ let toastTimer;
 let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
 let editingEntryId = null;
 let editingSubjectId = null;
+let supportsStartTimeColumn = true;
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -63,23 +65,22 @@ function normalizeEntry(row) {
 async function loadState() {
   if (!currentUser) return;
   try {
-    const [subjectsResult, entriesResult] = await Promise.all([
+    const [subjectsResult, logsResult] = await Promise.all([
       supabase.from("subjects").select("id,name,color").eq("archived", false).order("name"),
-      supabase
-        .from("study_logs")
-        .select("id,subject_id,studied_on,minutes,kind,notes,start_time,created_at")
-        .order("studied_on", { ascending: false })
-        .order("id", { ascending: false }),
+      fetchStudyLogs(supabase),
     ]);
     state.subjects = assertResult(subjectsResult).map((row) => ({
       id: row.id,
       name: row.name,
       color: row.color,
     }));
-    state.entries = assertResult(entriesResult).map(normalizeEntry);
+    state.entries = logsResult.rows.map(normalizeEntry);
+    supportsStartTimeColumn = logsResult.supportsStartTime;
+    $("#data-load-error").hidden = true;
     render();
   } catch (error) {
     console.error(error);
+    $("#data-load-error").hidden = false;
     showToast("Não foi possível carregar seus dados.");
     render();
   }
@@ -114,6 +115,7 @@ function showSession(session) {
   else {
     state.subjects = [];
     state.entries = [];
+    $("#data-load-error").hidden = true;
     render();
   }
 }
@@ -464,9 +466,11 @@ function updateEntryEndTime() {
   const durationMinutes = Number(form.elements.hours.value) * 60 + Number(form.elements.minutes.value);
   const end = calculateEndTime(form.elements.startTime.value, durationMinutes);
   $("#entry-end-time").value = end?.time || "";
-  $("#entry-end-hint").textContent = end?.nextDay
-    ? "O estudo termina no dia seguinte."
-    : "Calculado pelo tempo de estudo.";
+  $("#entry-end-hint").textContent = !supportsStartTimeColumn
+    ? "Horários ainda não podem ser salvos; atualize o banco de dados."
+    : end?.nextDay
+      ? "O estudo termina no dia seguinte."
+      : "Calculado pelo tempo de estudo.";
 }
 
 function setEntrySubject(subjectId) {
@@ -793,13 +797,10 @@ $("#entry-form").addEventListener("submit", async (event) => {
       kind: form.get("type") === "theory" ? "teoria" : "exercicios",
       notes: form.get("notes"),
     };
-    let request = supabase.from("study_logs");
-    request = entryId
-      ? request.update(values).eq("id", entryId)
-      : request.insert({ user_id: currentUser.id, ...values });
-    const rows = assertResult(
-      await request.select("id,subject_id,studied_on,minutes,kind,notes,start_time,created_at"),
-    );
+    if (!entryId) values.user_id = currentUser.id;
+    const saved = await saveStudyLog(supabase, values, entryId, supportsStartTimeColumn);
+    supportsStartTimeColumn = saved.supportsStartTime;
+    const rows = saved.rows;
     const entry = normalizeEntry(rows[0]);
     if (entryId) {
       state.entries = state.entries.map((item) => (item.id === entryId ? entry : item));
@@ -810,7 +811,9 @@ $("#entry-form").addEventListener("submit", async (event) => {
     state.month = new Date(`${entry.studyDate}T12:00:00`);
     $("#entry-dialog").close();
     render();
-    showToast(entryId ? "Registro atualizado." : "Registro salvo.");
+    showToast(supportsStartTimeColumn
+      ? entryId ? "Registro atualizado." : "Registro salvo."
+      : "Registro salvo sem horário. Atualize o banco de dados para guardar horários.");
   } catch (error) {
     console.error(error);
     $("#entry-error").textContent = entryId

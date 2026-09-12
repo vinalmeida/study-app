@@ -95,3 +95,4 @@
 .time-hint{color:var(--muted);font-size:.72rem;font-weight:500}
 #entry-end-time{background:#f7f8fb;color:#465068}
 .history-entry-content .history-entry-time{color:var(--muted);font-size:.76rem}
+.data-load-error{margin:0 0 18px;padding:14px 18px;border:1px solid #eabcbc;border-radius:12px;background:#fff0f0;color:#923838;font-size:.86rem}
