@@ -43,10 +43,10 @@ test("salva sem horário quando o banco ainda usa o esquema antigo", async () =>
     },
   };
 
-  const result = await saveStudyLog(client, { user_id: "usuario", minutes: 50, start_time: "03:00:00" }, null, true);
+  const result = await saveStudyLog(client, { user_id: "usuario", minutes: 50, start_time: "03:00" }, null, true);
   assert.equal(result.supportsStartTime, false);
   assert.equal(result.rows[0].id, "novo-registro");
-  assert.equal(inserted[0].start_time, "03:00:00");
+  assert.equal(inserted[0].start_time, "03:00");
   assert.equal(inserted[1].start_time, undefined);
   assert.equal(inserted[1].minutes, 50);
 });

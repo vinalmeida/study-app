@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { calculateEndTime, normalizeStudyTime } from "./study-time.js";
+import { normalizeStudyTime } from "./study-time.js";
 import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -76,6 +76,7 @@ async function loadState() {
     }));
     state.entries = logsResult.rows.map(normalizeEntry);
     supportsStartTimeColumn = logsResult.supportsStartTime;
+    updateTimeWarning();
     $("#data-load-error").hidden = true;
     render();
   } catch (error) {
@@ -228,8 +229,8 @@ function renderSelectedDay() {
     entries
       .map((entry) => {
         const subject = subjectById(entry.subjectId);
-        const studyPeriod = formatStudyPeriod(entry);
-        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyPeriod ? ` · ${studyPeriod}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
+        const studyStart = formatStudyStart(entry);
+        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyStart ? ` · ${studyStart}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
       })
       .join("") ||
     `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`;
@@ -286,8 +287,8 @@ function renderHistory() {
           .reverse()
           .map((entry) => {
             const subject = subjectById(entry.subjectId);
-            const studyPeriod = formatStudyPeriod(entry);
-            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyPeriod ? `<p class="history-entry-time">${studyPeriod}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
+            const studyStart = formatStudyStart(entry);
+            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyStart ? `<p class="history-entry-time">${studyStart}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
           })
           .join("");
         return `<article class="history-day"><header class="history-day-header"><div><span class="history-date">${formatHistoryDate(date)}</span><div class="history-subjects">${subjects.map((subject) => `<span class="history-subject"><i style="background:${subject?.color || colors[0]}"></i>${escapeHtml(subject?.name || "Disciplina removida")}</span>`).join("")}</div></div><div class="history-day-total"><span>Total do dia</span><strong>${formatDuration(dayTotal)}</strong></div></header><ol class="history-entries">${entryRows}</ol></article>`;
@@ -446,7 +447,7 @@ function openEntry(date = state.selectedDate, entry = null) {
   }
   form.elements.startTime.value = entry ? entry.startTime || "" : localTime(now);
   form.elements.startTime.required = !entry;
-  updateEntryEndTime();
+  updateTimeWarning();
   $("#entry-dialog-eyebrow").textContent = entry ? "EDITAR REGISTRO" : "NOVO REGISTRO";
   $("#entry-dialog-title").textContent = entry ? "Atualize seu estudo" : "O que você estudou?";
   $("#entry-submit").textContent = entry ? "Salvar alterações" : "Salvar registro";
@@ -456,21 +457,13 @@ function openEntry(date = state.selectedDate, entry = null) {
 }
 
 function localTime(date) {
-  return [date.getHours(), date.getMinutes(), date.getSeconds()]
+  return [date.getHours(), date.getMinutes()]
     .map((part) => String(part).padStart(2, "0"))
     .join(":");
 }
 
-function updateEntryEndTime() {
-  const form = $("#entry-form");
-  const durationMinutes = Number(form.elements.hours.value) * 60 + Number(form.elements.minutes.value);
-  const end = calculateEndTime(form.elements.startTime.value, durationMinutes);
-  $("#entry-end-time").value = end?.time || "";
-  $("#entry-end-hint").textContent = !supportsStartTimeColumn
-    ? "Horários ainda não podem ser salvos; atualize o banco de dados."
-    : end?.nextDay
-      ? "O estudo termina no dia seguinte."
-      : "Calculado pelo tempo de estudo.";
+function updateTimeWarning() {
+  $("#entry-time-warning").hidden = supportsStartTimeColumn;
 }
 
 function setEntrySubject(subjectId) {
@@ -759,14 +752,10 @@ $$('.close-subjects').forEach((button) =>
   }),
 );
 $("#subjects-dialog").addEventListener("close", resetSubjectForm);
-$("#entry-start-time").addEventListener("input", updateEntryEndTime);
 $("#entry-start-time").addEventListener("blur", (event) => {
   const normalized = normalizeStudyTime(event.target.value);
   if (normalized) event.target.value = normalized;
-  updateEntryEndTime();
 });
-$("#entry-form").elements.hours.addEventListener("input", updateEntryEndTime);
-$("#entry-form").elements.minutes.addEventListener("input", updateEntryEndTime);
 
 $("#entry-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -784,7 +773,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
   }
   const startTime = form.get("startTime") ? normalizeStudyTime(form.get("startTime")) : null;
   if ((!editingEntryId && !startTime) || (form.get("startTime") && !startTime)) {
-    $("#entry-error").textContent = "Informe o início em 24 horas, no formato HH:MM ou HH:MM:SS.";
+    $("#entry-error").textContent = "Informe o início em 24 horas, no formato HH:MM.";
     $("#entry-start-time").focus();
     return;
   }
@@ -818,7 +807,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
     render();
     showToast(supportsStartTimeColumn
       ? entryId ? "Registro atualizado." : "Registro salvo."
-      : "Registro salvo sem horário. Atualize o banco de dados para guardar horários.");
+      : "Registro salvo sem horário de início.");
   } catch (error) {
     console.error(error);
     $("#entry-error").textContent = entryId
@@ -1081,9 +1070,8 @@ function formatDuration(minutes) {
   const rest = minutes % 60;
   return hours ? `${hours}h${rest ? ` ${rest}min` : ""}` : `${rest}min`;
 }
-function formatStudyPeriod(entry) {
-  const end = calculateEndTime(entry.startTime, entry.durationMinutes);
-  return end ? `${entry.startTime}–${end.time}${end.nextDay ? " (+1 dia)" : ""}` : "";
+function formatStudyStart(entry) {
+  return entry.startTime ? `Início: ${entry.startTime}` : "";
 }
 function formatHistoryDate(value) {
   const date = new Date(`${value}T12:00:00`);

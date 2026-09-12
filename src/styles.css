@@ -93,8 +93,18 @@
 
 #history-view{width:min(100%,920px);margin-inline:auto}
 .time-hint{color:var(--muted);font-size:.72rem;font-weight:500}
-#entry-end-time{background:#f7f8fb;color:#465068}
 .study-time-field{align-content:start;min-width:0}
 .study-time-field input{height:44px;min-height:44px;font-variant-numeric:tabular-nums}
+.study-time-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:7px 12px;align-items:start}
+.study-duration-group{min-width:0;display:grid;gap:7px}
+.study-time-label{color:#465068;font-size:.8rem;font-weight:700}
+.study-time-row .duration-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.duration-field{min-width:0;height:44px;border:1px solid #d5dbe7;border-radius:11px;background:#fff;display:flex;align-items:center}
+.duration-field:focus-within{outline:3px solid rgba(64,92,245,.2);outline-offset:2px}
+.duration-field input{min-width:0;min-height:0;height:100%;flex:1;padding:0 6px 0 12px;border:0;background:transparent}
+.duration-field input:focus-visible{outline:none}
+.duration-field span{padding-right:12px;color:var(--muted);font-size:.8rem;font-weight:500}
+.study-time-warning{grid-column:1/-1}
+@media(max-width:520px){.study-time-row{grid-template-columns:1fr}}
 .history-entry-content .history-entry-time{color:var(--muted);font-size:.76rem}
 .data-load-error{margin:0 0 18px;padding:14px 18px;border:1px solid #eabcbc;border-radius:12px;background:#fff0f0;color:#923838;font-size:.86rem}
