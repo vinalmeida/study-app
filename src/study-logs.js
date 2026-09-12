@@ -24,7 +24,7 @@ export async function fetchStudyLogs(client) {
   return { rows: result.data, supportsStartTime: true };
 }
 
-export async function saveStudyLog(client, values, entryId, supportsStartTime) {
+export async function saveStudyLog(client, values, entryId) {
   const write = async (includeStartTime) => {
     const savedValues = { ...values };
     if (!includeStartTime) delete savedValues.start_time;
@@ -35,12 +35,18 @@ export async function saveStudyLog(client, values, entryId, supportsStartTime) {
     return request.select(`${columns}${includeStartTime ? ",start_time" : ""}`);
   };
 
-  let result = await write(supportsStartTime);
-  if (supportsStartTime && isMissingStartTimeColumn(result.error)) {
+  let result = await write(true);
+  if (isMissingStartTimeColumn(result.error)) {
+    if (values.start_time) {
+      const error = new Error("Não foi possível salvar o horário de início. A atualização do serviço ainda está pendente. Os dados digitados continuam no formulário.");
+      error.code = "START_TIME_UNAVAILABLE";
+      throw error;
+    }
+    // Registros antigos sem horário continuam editáveis, sem descartar dados informados.
     result = await write(false);
     if (result.error) throw result.error;
     return { rows: result.data, supportsStartTime: false };
   }
   if (result.error) throw result.error;
-  return { rows: result.data, supportsStartTime };
+  return { rows: result.data, supportsStartTime: true };
 }

@@ -92,7 +92,6 @@
 .entry-subject-option:hover,.entry-subject-option:focus-visible{background:#f2f4f9}.entry-subject-option[aria-selected="true"]{background:#edf0ff;color:var(--primary-dark);font-weight:700}
 
 #history-view{width:min(100%,920px);margin-inline:auto}
-.time-hint{color:var(--muted);font-size:.72rem;font-weight:500}
 .study-time-field{align-content:start;min-width:0}
 .study-time-field input{height:44px;min-height:44px;font-variant-numeric:tabular-nums}
 .study-time-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:7px 12px;align-items:start}
@@ -104,7 +103,6 @@
 .duration-field input{min-width:0;min-height:0;height:100%;flex:1;padding:0 6px 0 12px;border:0;background:transparent}
 .duration-field input:focus-visible{outline:none}
 .duration-field span{padding-right:12px;color:var(--muted);font-size:.8rem;font-weight:500}
-.study-time-warning{grid-column:1/-1}
 @media(max-width:520px){.study-time-row{grid-template-columns:1fr}}
 .history-entry-content .history-entry-time{color:var(--muted);font-size:.76rem}
 .data-load-error{margin:0 0 18px;padding:14px 18px;border:1px solid #eabcbc;border-radius:12px;background:#fff0f0;color:#923838;font-size:.86rem}

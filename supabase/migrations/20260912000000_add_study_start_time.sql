@@ -1,2 +1,2 @@
 alter table public.study_logs
-  add column start_time time without time zone;
+  add column if not exists start_time time without time zone;

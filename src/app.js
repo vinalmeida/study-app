@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { normalizeStudyTime } from "./study-time.js";
+import { formatStudyTimeInput, normalizeStudyTime } from "./study-time.js";
 import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -42,7 +42,6 @@ let toastTimer;
 let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
 let editingEntryId = null;
 let editingSubjectId = null;
-let supportsStartTimeColumn = true;
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -75,8 +74,6 @@ async function loadState() {
       color: row.color,
     }));
     state.entries = logsResult.rows.map(normalizeEntry);
-    supportsStartTimeColumn = logsResult.supportsStartTime;
-    updateTimeWarning();
     $("#data-load-error").hidden = true;
     render();
   } catch (error) {
@@ -447,7 +444,6 @@ function openEntry(date = state.selectedDate, entry = null) {
   }
   form.elements.startTime.value = entry ? entry.startTime || "" : localTime(now);
   form.elements.startTime.required = !entry;
-  updateTimeWarning();
   $("#entry-dialog-eyebrow").textContent = entry ? "EDITAR REGISTRO" : "NOVO REGISTRO";
   $("#entry-dialog-title").textContent = entry ? "Atualize seu estudo" : "O que você estudou?";
   $("#entry-submit").textContent = entry ? "Salvar alterações" : "Salvar registro";
@@ -460,10 +456,6 @@ function localTime(date) {
   return [date.getHours(), date.getMinutes()]
     .map((part) => String(part).padStart(2, "0"))
     .join(":");
-}
-
-function updateTimeWarning() {
-  $("#entry-time-warning").hidden = supportsStartTimeColumn;
 }
 
 function setEntrySubject(subjectId) {
@@ -752,6 +744,12 @@ $$('.close-subjects').forEach((button) =>
   }),
 );
 $("#subjects-dialog").addEventListener("close", resetSubjectForm);
+$("#entry-start-time").addEventListener("input", (event) => {
+  const input = event.target;
+  const formatted = formatStudyTimeInput(input.value, input.selectionStart ?? input.value.length, event.inputType);
+  input.value = formatted.value;
+  input.setSelectionRange(formatted.caretPosition, formatted.caretPosition);
+});
 $("#entry-start-time").addEventListener("blur", (event) => {
   const normalized = normalizeStudyTime(event.target.value);
   if (normalized) event.target.value = normalized;
@@ -792,8 +790,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
       notes: form.get("notes"),
     };
     if (!entryId) values.user_id = currentUser.id;
-    const saved = await saveStudyLog(supabase, values, entryId, supportsStartTimeColumn);
-    supportsStartTimeColumn = saved.supportsStartTime;
+    const saved = await saveStudyLog(supabase, values, entryId);
     const rows = saved.rows;
     const entry = normalizeEntry(rows[0]);
     if (entryId) {
@@ -805,14 +802,14 @@ $("#entry-form").addEventListener("submit", async (event) => {
     state.month = new Date(`${entry.studyDate}T12:00:00`);
     $("#entry-dialog").close();
     render();
-    showToast(supportsStartTimeColumn
-      ? entryId ? "Registro atualizado." : "Registro salvo."
-      : "Registro salvo sem horário de início.");
+    showToast(entryId ? "Registro atualizado." : "Registro salvo.");
   } catch (error) {
     console.error(error);
-    $("#entry-error").textContent = entryId
-      ? "Não foi possível atualizar o registro."
-      : "Não foi possível salvar o registro.";
+    $("#entry-error").textContent = error.code === "START_TIME_UNAVAILABLE"
+      ? error.message
+      : entryId
+        ? "Não foi possível atualizar o registro."
+        : "Não foi possível salvar o registro.";
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = submitLabel;
