@@ -94,5 +94,7 @@
 #history-view{width:min(100%,920px);margin-inline:auto}
 .time-hint{color:var(--muted);font-size:.72rem;font-weight:500}
 #entry-end-time{background:#f7f8fb;color:#465068}
+.study-time-field{align-content:start;min-width:0}
+.study-time-field input{height:44px;min-height:44px;font-variant-numeric:tabular-nums}
 .history-entry-content .history-entry-time{color:var(--muted);font-size:.76rem}
 .data-load-error{margin:0 0 18px;padding:14px 18px;border:1px solid #eabcbc;border-radius:12px;background:#fff0f0;color:#923838;font-size:.86rem}

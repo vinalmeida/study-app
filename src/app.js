@@ -760,6 +760,11 @@ $$('.close-subjects').forEach((button) =>
 );
 $("#subjects-dialog").addEventListener("close", resetSubjectForm);
 $("#entry-start-time").addEventListener("input", updateEntryEndTime);
+$("#entry-start-time").addEventListener("blur", (event) => {
+  const normalized = normalizeStudyTime(event.target.value);
+  if (normalized) event.target.value = normalized;
+  updateEntryEndTime();
+});
 $("#entry-form").elements.hours.addEventListener("input", updateEntryEndTime);
 $("#entry-form").elements.minutes.addEventListener("input", updateEntryEndTime);
 
@@ -779,7 +784,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
   }
   const startTime = form.get("startTime") ? normalizeStudyTime(form.get("startTime")) : null;
   if ((!editingEntryId && !startTime) || (form.get("startTime") && !startTime)) {
-    $("#entry-error").textContent = "Informe um horário de início válido.";
+    $("#entry-error").textContent = "Informe o início em 24 horas, no formato HH:MM ou HH:MM:SS.";
     $("#entry-start-time").focus();
     return;
   }

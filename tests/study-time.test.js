@@ -12,7 +12,10 @@ test("preserva segundos e indica quando o fim cai no dia seguinte", () => {
 });
 
 test("rejeita horários e durações inválidos", () => {
+  assert.equal(normalizeStudyTime("03:00"), "03:00:00");
+  assert.equal(normalizeStudyTime("15:30:45"), "15:30:45");
   assert.equal(normalizeStudyTime("25:00"), null);
+  assert.equal(normalizeStudyTime("03:00 PM"), null);
   assert.equal(calculateEndTime("03:00", 0), null);
   assert.equal(calculateEndTime("03:00", 1441), null);
 });
