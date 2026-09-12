@@ -8,6 +8,10 @@
     {
       "source": "/historico",
       "destination": "/index.html"
+    },
+    {
+      "source": "/estatisticas",
+      "destination": "/index.html"
     }
   ],
   "headers": [

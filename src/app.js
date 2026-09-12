@@ -21,12 +21,17 @@ const subjectColors = [
 ];
 const colors = subjectColors.map((color) => color.value);
 const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const routeViews = {
+  "/": "calendar",
+  "/historico": "history",
+  "/estatisticas": "statistics",
+};
 const state = {
   month: new Date(),
   selectedDate: isoDate(new Date()),
   subjects: [],
   entries: [],
-  view: location.pathname === "/historico" ? "history" : "calendar",
+  view: routeViews[location.pathname] || "calendar",
 };
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -141,6 +146,7 @@ function render() {
   renderSelectedDay();
   renderSummary();
   renderHistory();
+  renderStatistics();
   renderView();
 }
 
@@ -279,11 +285,113 @@ function renderHistory() {
     `<div class="history-empty empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></div><strong>Seu histórico começará aqui</strong><p>Quando você adicionar um registro, ele aparecerá organizado pela data de estudo.</p></div>`;
 }
 
+function renderStatistics() {
+  const totals = new Map(state.subjects.map((subject) => [subject.id, 0]));
+  let removedMinutes = 0;
+  state.entries.forEach((entry) => {
+    if (totals.has(entry.subjectId)) {
+      totals.set(entry.subjectId, totals.get(entry.subjectId) + entry.durationMinutes);
+    } else {
+      removedMinutes += entry.durationMinutes;
+    }
+  });
+
+  const rows = state.subjects.map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    color: safeSubjectColor(subject.color),
+    minutes: totals.get(subject.id) || 0,
+  }));
+  if (removedMinutes) {
+    rows.push({
+      id: "removed-subjects",
+      name: "Disciplinas removidas",
+      color: "#9ba3b4",
+      minutes: removedMinutes,
+    });
+  }
+  rows.sort((a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name, "pt-BR"));
+
+  const totalMinutes = rows.reduce((sum, row) => sum + row.minutes, 0);
+  const maxMinutes = Math.max(...rows.map((row) => row.minutes), 0);
+  const chartRows = rows.filter((row) => row.minutes > 0);
+  $("#statistics-total").textContent = formatDuration(totalMinutes);
+  $("#statistics-chart").innerHTML = buildPieChart(chartRows, totalMinutes);
+  $("#statistics-subjects").innerHTML = rows.length
+    ? rows
+        .map(
+          (row) =>
+            `<div class="statistics-subject-row"><div class="statistics-subject-heading"><span class="subject-dot" style="background:${row.color}"></span><strong>${escapeHtml(row.name)}</strong><span>${formatDuration(row.minutes)}</span></div><div class="statistics-progress" aria-hidden="true"><span style="--subject-progress:${maxMinutes ? (row.minutes / maxMinutes) * 100 : 0}%;--subject-color:${row.color}"></span></div></div>`,
+        )
+        .join("")
+    : `<div class="statistics-empty empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 1-9 9h9V3Z"/><path d="M16 4.1A9 9 0 0 1 19.9 8H16V4.1Z"/></svg></div><strong>Nenhuma disciplina ainda</strong><p>Crie uma disciplina para começar a acompanhar suas estatísticas.</p></div>`;
+}
+
+function buildPieChart(rows, totalMinutes) {
+  if (!totalMinutes) {
+    return `<div class="statistics-chart-empty"><div class="statistics-empty-pie" aria-hidden="true"></div><strong>Seu gráfico começará aqui</strong><p>Registre algum tempo de estudo para visualizar a distribuição.</p></div>`;
+  }
+
+  let startAngle = -90;
+  const slices = rows
+    .map((row) => {
+      const ratio = row.minutes / totalMinutes;
+      const endAngle = startAngle + ratio * 360;
+      const title = `${escapeHtml(row.name)}: ${formatDuration(row.minutes)} (${formatPercentage(ratio)})`;
+      let shape;
+      if (rows.length === 1) {
+        shape = `<circle cx="120" cy="120" r="108" fill="${row.color}"><title>${title}</title></circle>`;
+      } else {
+        const start = polarPoint(120, 120, 108, startAngle);
+        const end = polarPoint(120, 120, 108, endAngle);
+        const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+        shape = `<path d="M 120 120 L ${start.x} ${start.y} A 108 108 0 ${largeArc} 1 ${end.x} ${end.y} Z" fill="${row.color}"><title>${title}</title></path>`;
+      }
+      if (ratio >= 0.075) {
+        const labelPoint =
+          rows.length === 1
+            ? { x: 120, y: 120 }
+            : polarPoint(120, 120, 63, startAngle + ratio * 180);
+        shape += `<text class="statistics-pie-label" x="${labelPoint.x}" y="${labelPoint.y}">${formatPercentage(ratio)}</text>`;
+      }
+      startAngle = endAngle;
+      return shape;
+    })
+    .join("");
+
+  const description = rows
+    .map((row) => `${row.name}: ${formatDuration(row.minutes)}`)
+    .join(", ");
+  return `<svg class="statistics-pie" viewBox="0 0 240 240" role="img" aria-label="Distribuição do tempo estudado. ${escapeHtml(description)}">${slices}</svg>`;
+}
+
+function polarPoint(centerX, centerY, radius, angle) {
+  const radians = (angle * Math.PI) / 180;
+  return {
+    x: (centerX + radius * Math.cos(radians)).toFixed(3),
+    y: (centerY + radius * Math.sin(radians)).toFixed(3),
+  };
+}
+
+function formatPercentage(ratio) {
+  return `${(ratio * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+
+function safeSubjectColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? value : colors[0];
+}
+
 function renderView() {
   const isHistory = state.view === "history";
-  $("#calendar-view").hidden = isHistory;
+  const isStatistics = state.view === "statistics";
+  $("#calendar-view").hidden = isHistory || isStatistics;
   $("#history-view").hidden = !isHistory;
-  $("#page-title").textContent = isHistory ? "Seu histórico" : "Seu mês de estudos";
+  $("#statistics-view").hidden = !isStatistics;
+  $("#page-title").textContent = isHistory
+    ? "Seu histórico"
+    : isStatistics
+      ? "Suas estatísticas"
+      : "Seu mês de estudos";
   $$('[data-view-link]').forEach((link) => {
     const active = link.dataset.viewLink === state.view;
     link.classList.toggle("active", active);
@@ -293,12 +401,14 @@ function renderView() {
 }
 
 function setView(view, { updateUrl = true } = {}) {
-  state.view = view === "history" ? "history" : "calendar";
+  state.view = ["calendar", "history", "statistics"].includes(view) ? view : "calendar";
   if (updateUrl) {
-    history.pushState({ view: state.view }, "", state.view === "history" ? "/historico" : "/");
+    const path = Object.keys(routeViews).find((route) => routeViews[route] === state.view) || "/";
+    history.pushState({ view: state.view }, "", path);
   }
   renderView();
   if (state.view === "history") renderHistory();
+  if (state.view === "statistics") renderStatistics();
 }
 
 function openEntry(date = state.selectedDate, entry = null) {
@@ -549,7 +659,7 @@ $$('[data-view-link]').forEach((link) =>
   }),
 );
 window.addEventListener("popstate", () =>
-  setView(location.pathname === "/historico" ? "history" : "calendar", { updateUrl: false }),
+  setView(routeViews[location.pathname] || "calendar", { updateUrl: false }),
 );
 $("#prev-month").addEventListener("click", () => {
   state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1);

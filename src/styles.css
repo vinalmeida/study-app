@@ -46,3 +46,36 @@
 /* Datas no canto superior esquerdo das células */
 .calendar-day{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}.day-number{width:auto;height:auto;min-height:27px;display:flex;align-items:flex-start;justify-content:flex-start;line-height:1.2}.day-number.month-boundary{padding:0;font-size:.8rem}.calendar-day.today .day-number{width:27px;height:27px;display:flex;align-items:center;justify-content:center}
 @media(max-width:520px){.day-number{width:auto;height:auto;min-height:23px}.day-number.month-boundary{font-size:.72rem}.calendar-day.today .day-number{width:23px;height:23px}}
+
+/* Dashboard de estatísticas */
+.statistics-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(330px,.82fr);gap:18px;align-items:stretch}
+.statistics-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);box-shadow:var(--shadow)}
+.statistics-card-header{min-height:116px;padding:24px 26px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;background:#fbfcff}
+.statistics-card-header h2{margin:6px 0 4px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.3rem,2.2vw,1.7rem);font-weight:500;letter-spacing:-.025em}
+.statistics-card-header p{margin:0;color:var(--muted);font-size:.82rem}
+.statistics-period{flex:0 0 auto;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#59647b;font-size:.74rem;font-weight:700;white-space:nowrap}
+.statistics-chart{min-height:430px;padding:30px;display:grid;place-items:center}
+.statistics-pie{display:block;width:min(100%,410px);height:auto;overflow:visible;filter:drop-shadow(0 16px 22px rgba(32,46,89,.1))}
+.statistics-pie path,.statistics-pie circle{stroke:#fff;stroke-width:1.5;stroke-linejoin:round;transition:filter .15s ease,opacity .15s ease}
+.statistics-pie path:hover,.statistics-pie circle:hover{filter:brightness(1.04);opacity:.94}
+.statistics-pie-label{fill:#fff;stroke:rgba(20,28,52,.2);stroke-width:2px;paint-order:stroke;pointer-events:none;text-anchor:middle;dominant-baseline:middle;font-size:10px;font-weight:800}
+.statistics-chart-empty{max-width:300px;display:grid;justify-items:center;color:var(--muted);text-align:center}
+.statistics-empty-pie{width:190px;height:190px;margin-bottom:24px;border-radius:50%;background:#eef0f5;box-shadow:inset 0 0 0 1px #e1e5ed}
+.statistics-chart-empty strong{color:var(--ink);font-size:.92rem}
+.statistics-chart-empty p{margin:6px 0 0;font-size:.78rem;line-height:1.5}
+.statistics-list-card{display:flex;flex-direction:column}
+.statistics-subjects{padding:8px 26px;display:grid;align-content:start}
+.statistics-subject-row{padding:17px 0;border-bottom:1px solid #edf0f5}
+.statistics-subject-row:last-child{border-bottom:0}
+.statistics-subject-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
+.statistics-subject-heading strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem}
+.statistics-subject-heading>span:last-child{color:#38435b;font-size:.8rem;font-weight:750;white-space:nowrap}
+.statistics-progress{height:5px;margin:9px 0 0 19px;overflow:hidden;border-radius:99px;background:#e8ebf2}
+.statistics-progress span{display:block;width:var(--subject-progress);height:100%;border-radius:inherit;background:var(--subject-color);transition:width .35s ease}
+.statistics-empty{margin:auto 20px;padding-top:62px;padding-bottom:62px}
+.statistics-total{min-height:68px;margin-top:auto;padding:18px 26px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fbfcff}
+.statistics-total span{color:var(--muted);font-size:.76rem}
+.statistics-total strong{font-size:1.15rem;white-space:nowrap}
+@media(max-width:1100px){.statistics-grid{grid-template-columns:1fr}.statistics-chart{min-height:380px}.statistics-pie{width:min(100%,360px)}}
+@media(max-width:780px){.mobile-view-nav{grid-template-columns:repeat(3,1fr)}.statistics-card-header{min-height:0;padding:20px}.statistics-chart{min-height:330px;padding:24px}.statistics-pie{width:min(100%,300px)}.statistics-subjects{padding-left:20px;padding-right:20px}.statistics-total{padding-left:20px;padding-right:20px}}
+@media(max-width:420px){.mobile-view-link{padding-left:6px;padding-right:6px;font-size:.76rem}.statistics-card-header{display:grid}.statistics-period{width:max-content}.statistics-chart{min-height:290px;padding:18px}.statistics-pie{width:min(100%,260px)}}

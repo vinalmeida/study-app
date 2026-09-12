@@ -80,6 +80,7 @@
       <nav class="main-nav" aria-label="Seções">
         <a class="nav-item active" href="/" data-view-link="calendar" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Calendário</a>
         <a class="nav-item" href="/historico" data-view-link="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Histórico</a>
+        <a class="nav-item" href="/estatisticas" data-view-link="statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 1-9 9h9V3Z"/><path d="M16 4.1A9 9 0 0 1 19.9 8H16V4.1Z"/></svg>Estatísticas</a>
       </nav>
       <div class="subjects-panel">
         <div class="section-heading"><span>Disciplinas</span><button class="icon-button" id="manage-subjects" type="button" aria-label="Gerenciar disciplinas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
@@ -98,6 +99,7 @@
       <nav class="mobile-view-nav" aria-label="Seções">
         <a class="mobile-view-link active" href="/" data-view-link="calendar" aria-current="page">Calendário</a>
         <a class="mobile-view-link" href="/historico" data-view-link="history">Histórico</a>
+        <a class="mobile-view-link" href="/estatisticas" data-view-link="statistics">Estatísticas</a>
       </nav>
 
       <section id="calendar-view" class="page-view">
@@ -119,6 +121,26 @@
           <div class="history-total"><span>Tempo acumulado</span><strong id="history-total">0h</strong></div>
         </div>
         <div id="history-list" class="history-list" aria-live="polite"></div>
+      </section>
+
+      <section id="statistics-view" class="page-view" hidden>
+        <div class="statistics-grid">
+          <article class="statistics-card statistics-chart-card">
+            <header class="statistics-card-header">
+              <div><span class="eyebrow">VISÃO GERAL</span><h2>Distribuição do tempo</h2><p>Tempo estudado por disciplina.</p></div>
+              <span class="statistics-period">Todo o período</span>
+            </header>
+            <div id="statistics-chart" class="statistics-chart" aria-live="polite"></div>
+          </article>
+
+          <article class="statistics-card statistics-list-card">
+            <header class="statistics-card-header">
+              <div><span class="eyebrow">DETALHAMENTO</span><h2>Tempo por disciplina</h2><p>Do maior para o menor.</p></div>
+            </header>
+            <div id="statistics-subjects" class="statistics-subjects" aria-live="polite"></div>
+            <footer class="statistics-total"><span>Total de tempo estudado</span><strong id="statistics-total">0min</strong></footer>
+          </article>
+        </div>
       </section>
     </main>
   </div>
