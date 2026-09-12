@@ -1088,7 +1088,7 @@ function formatDuration(minutes) {
 }
 function formatStudyPeriod(entry) {
   if (!entry.startTime) return "";
-  return entry.endTime ? `${entry.startTime} às ${entry.endTime}` : entry.startTime;
+  return entry.endTime ? `${entry.startTime} - ${entry.endTime}` : entry.startTime;
 }
 function formatHistoryDate(value) {
   const date = new Date(`${value}T12:00:00`);
