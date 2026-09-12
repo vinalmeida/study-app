@@ -151,7 +151,8 @@ function render() {
 }
 
 function renderSubjects() {
-  const rows = state.subjects
+  const sortedSubjects = [...state.subjects].sort(compareSubjectsByName);
+  const rows = sortedSubjects
     .map(
       (subject) =>
         `<div class="subject-row"><span class="subject-dot" style="background:${subject.color}"></span><span>${escapeHtml(subject.name)}</span></div>`,
@@ -159,11 +160,15 @@ function renderSubjects() {
     .join("");
   $("#subject-list").innerHTML =
     rows || `<div class="subject-row"><span>Adicione sua primeira disciplina</span></div>`;
-  $("#entry-subject").innerHTML = state.subjects
-    .map((subject) => `<option value="${subject.id}">${escapeHtml(subject.name)}</option>`)
+  $("#entry-subject-options").innerHTML = sortedSubjects
+    .map(
+      (subject) =>
+        `<button class="entry-subject-option" type="button" role="option" data-entry-subject="${escapeHtml(subject.id)}" aria-selected="false"><span class="subject-dot" style="background:${safeSubjectColor(subject.color)}" aria-hidden="true"></span><span>${escapeHtml(subject.name)}</span></button>`,
+    )
     .join("");
+  setEntrySubject($("#entry-subject").value || sortedSubjects[0]?.id);
   $("#manage-subject-list").innerHTML =
-    state.subjects
+    sortedSubjects
       .map(
         (subject) =>
           `<div class="manage-row"><span class="subject-dot" style="background:${subject.color}"></span><strong>${escapeHtml(subject.name)}</strong><div class="manage-actions"><button class="edit-subject-button" type="button" data-edit-subject="${subject.id}">Editar</button><button class="danger-button" type="button" data-delete-subject="${subject.id}">Remover</button></div></div>`,
@@ -423,7 +428,9 @@ function openEntry(date = state.selectedDate, entry = null) {
   const studyDate = entry?.studyDate || date;
   $("#entry-date").value = formatBrazilianDate(studyDate);
   $("#entry-date-picker").value = studyDate;
-  $("#entry-subject").value = entry?.subjectId || state.subjects[0].id;
+  setEntrySubject(
+    entry?.subjectId || [...state.subjects].sort(compareSubjectsByName)[0].id,
+  );
   if (entry) {
     form.elements.hours.value = Math.floor(entry.durationMinutes / 60);
     form.elements.minutes.value = entry.durationMinutes % 60;
@@ -436,6 +443,40 @@ function openEntry(date = state.selectedDate, entry = null) {
   $("#entry-submit").disabled = false;
   $("#entry-error").textContent = "";
   $("#entry-dialog").showModal();
+}
+
+function setEntrySubject(subjectId) {
+  const subject = state.subjects.find((item) => String(item.id) === String(subjectId));
+  const input = $("#entry-subject");
+  const trigger = $("#entry-subject-trigger");
+  const swatch = $("#entry-subject-swatch");
+  const value = subject ? String(subject.id) : "";
+  input.value = value;
+  input.setAttribute("value", value);
+  trigger.disabled = !subject;
+  $("#entry-subject-label").textContent = subject?.name || "Selecione uma disciplina";
+  swatch.hidden = !subject;
+  swatch.style.background = subject ? safeSubjectColor(subject.color) : "";
+  $$('[data-entry-subject]').forEach((option) => {
+    option.setAttribute(
+      "aria-selected",
+      String(subject && String(option.dataset.entrySubject) === String(subject.id)),
+    );
+  });
+}
+
+function closeEntrySubjectOptions({ focusTrigger = false } = {}) {
+  $("#entry-subject-options").hidden = true;
+  $("#entry-subject-trigger").setAttribute("aria-expanded", "false");
+  if (focusTrigger) $("#entry-subject-trigger").focus();
+}
+
+function openEntrySubjectOptions() {
+  const options = $("#entry-subject-options");
+  if (!state.subjects.length) return;
+  options.hidden = false;
+  $("#entry-subject-trigger").setAttribute("aria-expanded", "true");
+  (options.querySelector('[aria-selected="true"]') || options.firstElementChild)?.focus();
 }
 
 function renderSubjectColorOptions() {
@@ -771,6 +812,47 @@ $("#subject-color-trigger").addEventListener("click", () => {
   else closeSubjectColorOptions();
 });
 
+$("#entry-subject-trigger").addEventListener("click", () => {
+  if ($("#entry-subject-options").hidden) openEntrySubjectOptions();
+  else closeEntrySubjectOptions();
+});
+
+$("#entry-subject-options").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-entry-subject]");
+  if (!option) return;
+  setEntrySubject(option.dataset.entrySubject);
+  closeEntrySubjectOptions({ focusTrigger: true });
+});
+
+$(".entry-subject-select").addEventListener("keydown", (event) => {
+  const options = $$('[data-entry-subject]');
+  if (!options.length) return;
+  if (event.key === "Tab") {
+    closeEntrySubjectOptions();
+    return;
+  }
+  if (event.key === "Escape") {
+    closeEntrySubjectOptions({ focusTrigger: true });
+    return;
+  }
+  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  if ($("#entry-subject-options").hidden) {
+    openEntrySubjectOptions();
+    return;
+  }
+  const currentIndex = options.indexOf(document.activeElement);
+  const nextIndex =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? options.length - 1
+        : event.key === "ArrowDown"
+          ? (currentIndex + 1) % options.length
+          : (currentIndex - 1 + options.length) % options.length;
+  options[nextIndex].focus();
+});
+
 $("#subject-color-options").addEventListener("click", (event) => {
   const option = event.target.closest("[data-subject-color]");
   if (!option) return;
@@ -808,7 +890,10 @@ $(".color-select").addEventListener("keydown", (event) => {
 
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".color-select")) closeSubjectColorOptions();
+  if (!event.target.closest(".entry-subject-select")) closeEntrySubjectOptions();
 });
+
+$("#entry-dialog").addEventListener("close", closeEntrySubjectOptions);
 
 $("#subject-cancel-edit").addEventListener("click", () => {
   resetSubjectForm();
@@ -846,7 +931,7 @@ $("#subject-form").addEventListener("submit", async (event) => {
     } else {
       state.subjects.push(subject);
     }
-    state.subjects.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    state.subjects.sort(compareSubjectsByName);
     saved = true;
     resetSubjectForm();
     render();
@@ -921,6 +1006,9 @@ $("#day-entries").addEventListener("click", async (event) => {
 
 function subjectById(id) {
   return state.subjects.find((subject) => subject.id === id);
+}
+function compareSubjectsByName(first, second) {
+  return first.name.localeCompare(second.name, "pt-BR", { sensitivity: "base" });
 }
 function isoDate(date) {
   const year = date.getFullYear();
