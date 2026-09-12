@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { calculateEndTime, normalizeStudyTime } from "./study-time.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -54,6 +55,7 @@ function normalizeEntry(row) {
     durationMinutes: Number(row.minutes),
     studyType: row.kind === "teoria" ? "theory" : "exercises",
     notes: row.notes || "",
+    startTime: normalizeStudyTime(row.start_time),
     createdAt: row.created_at || "",
   };
 }
@@ -65,7 +67,7 @@ async function loadState() {
       supabase.from("subjects").select("id,name,color").eq("archived", false).order("name"),
       supabase
         .from("study_logs")
-        .select("id,subject_id,studied_on,minutes,kind,notes,created_at")
+        .select("id,subject_id,studied_on,minutes,kind,notes,start_time,created_at")
         .order("studied_on", { ascending: false })
         .order("id", { ascending: false }),
     ]);
@@ -224,7 +226,8 @@ function renderSelectedDay() {
     entries
       .map((entry) => {
         const subject = subjectById(entry.subjectId);
-        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
+        const studyPeriod = formatStudyPeriod(entry);
+        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyPeriod ? ` · ${studyPeriod}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
       })
       .join("") ||
     `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`;
@@ -281,7 +284,8 @@ function renderHistory() {
           .reverse()
           .map((entry) => {
             const subject = subjectById(entry.subjectId);
-            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
+            const studyPeriod = formatStudyPeriod(entry);
+            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyPeriod ? `<p class="history-entry-time">${studyPeriod}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
           })
           .join("");
         return `<article class="history-day"><header class="history-day-header"><div><span class="history-date">${formatHistoryDate(date)}</span><div class="history-subjects">${subjects.map((subject) => `<span class="history-subject"><i style="background:${subject?.color || colors[0]}"></i>${escapeHtml(subject?.name || "Disciplina removida")}</span>`).join("")}</div></div><div class="history-day-total"><span>Total do dia</span><strong>${formatDuration(dayTotal)}</strong></div></header><ol class="history-entries">${entryRows}</ol></article>`;
@@ -425,6 +429,7 @@ function openEntry(date = state.selectedDate, entry = null) {
   const form = $("#entry-form");
   form.reset();
   editingEntryId = entry?.id || null;
+  const now = new Date();
   const studyDate = entry?.studyDate || date;
   $("#entry-date").value = formatBrazilianDate(studyDate);
   $("#entry-date-picker").value = studyDate;
@@ -437,12 +442,31 @@ function openEntry(date = state.selectedDate, entry = null) {
     form.elements.type.value = entry.studyType;
     form.elements.notes.value = entry.notes;
   }
+  form.elements.startTime.value = entry ? entry.startTime || "" : localTime(now);
+  form.elements.startTime.required = !entry;
+  updateEntryEndTime();
   $("#entry-dialog-eyebrow").textContent = entry ? "EDITAR REGISTRO" : "NOVO REGISTRO";
   $("#entry-dialog-title").textContent = entry ? "Atualize seu estudo" : "O que você estudou?";
   $("#entry-submit").textContent = entry ? "Salvar alterações" : "Salvar registro";
   $("#entry-submit").disabled = false;
   $("#entry-error").textContent = "";
   $("#entry-dialog").showModal();
+}
+
+function localTime(date) {
+  return [date.getHours(), date.getMinutes(), date.getSeconds()]
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
+}
+
+function updateEntryEndTime() {
+  const form = $("#entry-form");
+  const durationMinutes = Number(form.elements.hours.value) * 60 + Number(form.elements.minutes.value);
+  const end = calculateEndTime(form.elements.startTime.value, durationMinutes);
+  $("#entry-end-time").value = end?.time || "";
+  $("#entry-end-hint").textContent = end?.nextDay
+    ? "O estudo termina no dia seguinte."
+    : "Calculado pelo tempo de estudo.";
 }
 
 function setEntrySubject(subjectId) {
@@ -731,6 +755,9 @@ $$('.close-subjects').forEach((button) =>
   }),
 );
 $("#subjects-dialog").addEventListener("close", resetSubjectForm);
+$("#entry-start-time").addEventListener("input", updateEntryEndTime);
+$("#entry-form").elements.hours.addEventListener("input", updateEntryEndTime);
+$("#entry-form").elements.minutes.addEventListener("input", updateEntryEndTime);
 
 $("#entry-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -742,8 +769,14 @@ $("#entry-form").addEventListener("submit", async (event) => {
     return;
   }
   const durationMinutes = Number(form.get("hours")) * 60 + Number(form.get("minutes"));
-  if (durationMinutes < 1) {
-    $("#entry-error").textContent = "Informe pelo menos 1 minuto de estudo.";
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 1440) {
+    $("#entry-error").textContent = "Informe um tempo de estudo válido, de 1 minuto a 24 horas.";
+    return;
+  }
+  const startTime = form.get("startTime") ? normalizeStudyTime(form.get("startTime")) : null;
+  if ((!editingEntryId && !startTime) || (form.get("startTime") && !startTime)) {
+    $("#entry-error").textContent = "Informe um horário de início válido.";
+    $("#entry-start-time").focus();
     return;
   }
   const entryId = editingEntryId;
@@ -756,6 +789,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
       subject_id: form.get("subjectId"),
       studied_on: studyDate,
       minutes: durationMinutes,
+      start_time: startTime,
       kind: form.get("type") === "theory" ? "teoria" : "exercicios",
       notes: form.get("notes"),
     };
@@ -764,7 +798,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
       ? request.update(values).eq("id", entryId)
       : request.insert({ user_id: currentUser.id, ...values });
     const rows = assertResult(
-      await request.select("id,subject_id,studied_on,minutes,kind,notes,created_at"),
+      await request.select("id,subject_id,studied_on,minutes,kind,notes,start_time,created_at"),
     );
     const entry = normalizeEntry(rows[0]);
     if (entryId) {
@@ -1038,6 +1072,10 @@ function formatDuration(minutes) {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours ? `${hours}h${rest ? ` ${rest}min` : ""}` : `${rest}min`;
+}
+function formatStudyPeriod(entry) {
+  const end = calculateEndTime(entry.startTime, entry.durationMinutes);
+  return end ? `${entry.startTime}–${end.time}${end.nextDay ? " (+1 dia)" : ""}` : "";
 }
 function formatHistoryDate(value) {
   const date = new Date(`${value}T12:00:00`);

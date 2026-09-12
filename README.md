@@ -13,7 +13,7 @@ Acesse a versão publicada em: [cadernoestudos.vercel.app](https://cadernoestudo
 - Cadastro de conta e recuperação de senha por e-mail.
 - Calendário mensal com os registros de cada dia.
 - Cadastro, edição e remoção de registros de estudo.
-- Registro de tempo de estudo.
+- Registro de tempo de estudo com horário de início e fim calculado automaticamente.
 - Classificação entre teoria e exercícios.
 - Anotações sobre o conteúdo estudado.
 - Resumo mensal e semanal.

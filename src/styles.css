@@ -90,3 +90,8 @@
 .entry-subject-options{position:absolute;z-index:5;top:calc(100% + 6px);left:0;width:100%;max-height:240px;padding:5px;overflow-y:auto;border:1px solid #d5dbe7;border-radius:12px;background:#fff;box-shadow:0 16px 35px rgba(23,33,58,.16)}
 .entry-subject-option{width:100%;min-height:38px;padding:0 10px;border:0;border-radius:8px;background:transparent;display:flex;align-items:center;gap:9px;cursor:pointer;color:var(--ink);font-size:.82rem;text-align:left}
 .entry-subject-option:hover,.entry-subject-option:focus-visible{background:#f2f4f9}.entry-subject-option[aria-selected="true"]{background:#edf0ff;color:var(--primary-dark);font-weight:700}
+
+#history-view{width:min(100%,920px);margin-inline:auto}
+.time-hint{color:var(--muted);font-size:.72rem;font-weight:500}
+#entry-end-time{background:#f7f8fb;color:#465068}
+.history-entry-content .history-entry-time{color:var(--muted);font-size:.76rem}
