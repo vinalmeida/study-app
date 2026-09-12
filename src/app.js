@@ -82,6 +82,14 @@ function setAuthMessage(message) {
   $("#auth-message").textContent = message;
 }
 
+function clearAuthForms() {
+  $$(".auth-form").forEach((form) => form.reset());
+  $$(".auth-form input").forEach((input) => {
+    input.value = "";
+  });
+  setAuthMessage("");
+}
+
 function setAuthView(view) {
   authView = ["login", "signup", "forgot", "reset"].includes(view) ? view : "login";
   $$('[data-auth-view]').forEach((panel) => {
@@ -115,6 +123,10 @@ async function initializeAuth() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
       setAuthView("reset");
+    }
+    if (event === "SIGNED_OUT") {
+      clearAuthForms();
+      setAuthView("login");
     }
     showSession(session);
   });
@@ -514,8 +526,14 @@ $("#reset-form").addEventListener("submit", async (event) => {
 });
 
 $("#sign-out").addEventListener("click", async () => {
+  clearAuthForms();
   setAuthView("login");
-  if (supabase) await supabase.auth.signOut();
+  if (!supabase) return;
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error(error);
+    showToast("Não foi possível sair. Tente novamente.");
+  }
 });
 $("#calendar-grid").addEventListener("click", (event) => {
   const cell = event.target.closest("[data-date]");
