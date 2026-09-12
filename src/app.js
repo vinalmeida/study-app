@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { formatStudyTimeInput, normalizeStudyTime } from "./study-time.js";
+import { addMinutesToStudyTime, formatStudyTimeInput, normalizeStudyTime } from "./study-time.js";
 import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -49,14 +49,18 @@ function assertResult(result) {
 }
 
 function normalizeEntry(row) {
+  const durationMinutes = Number(row.minutes);
+  const startTime = normalizeStudyTime(row.start_time);
   return {
     id: row.id,
     subjectId: row.subject_id,
     studyDate: row.studied_on,
-    durationMinutes: Number(row.minutes),
+    durationMinutes,
     studyType: row.kind === "teoria" ? "theory" : "exercises",
     notes: row.notes || "",
-    startTime: normalizeStudyTime(row.start_time),
+    startTime,
+    // Derivado, nunca persistido: o banco guarda apenas o início e a duração.
+    endTime: addMinutesToStudyTime(startTime, durationMinutes),
     createdAt: row.created_at || "",
   };
 }
@@ -221,13 +225,15 @@ function renderSelectedDay() {
     state.selectedDate === today
       ? "Hoje"
       : date.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
-  const entries = state.entries.filter((entry) => entry.studyDate === state.selectedDate);
+  const entries = state.entries
+    .filter((entry) => entry.studyDate === state.selectedDate)
+    .sort(compareEntriesByStudyStart);
   $("#day-entries").innerHTML =
     entries
       .map((entry) => {
         const subject = subjectById(entry.subjectId);
-        const studyStart = formatStudyStart(entry);
-        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyStart ? ` · ${studyStart}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
+        const studyPeriod = formatStudyPeriod(entry);
+        return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyPeriod ? ` | ${studyPeriod}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
       })
       .join("") ||
     `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`;
@@ -284,8 +290,8 @@ function renderHistory() {
           .reverse()
           .map((entry) => {
             const subject = subjectById(entry.subjectId);
-            const studyStart = formatStudyStart(entry);
-            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyStart ? `<p class="history-entry-time">${studyStart}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
+            const studyPeriod = formatStudyPeriod(entry);
+            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyPeriod ? `<p class="history-entry-time">${studyPeriod}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
           })
           .join("");
         return `<article class="history-day"><header class="history-day-header"><div><span class="history-date">${formatHistoryDate(date)}</span><div class="history-subjects">${subjects.map((subject) => `<span class="history-subject"><i style="background:${subject?.color || colors[0]}"></i>${escapeHtml(subject?.name || "Disciplina removida")}</span>`).join("")}</div></div><div class="history-day-total"><span>Total do dia</span><strong>${formatDuration(dayTotal)}</strong></div></header><ol class="history-entries">${entryRows}</ol></article>`;
@@ -1035,6 +1041,19 @@ $("#day-entries").addEventListener("click", async (event) => {
 function subjectById(id) {
   return state.subjects.find((subject) => subject.id === id);
 }
+function compareEntriesByStudyStart(first, second) {
+  // Mais recente em cima. Registros antigos sem horário ficam no fim da lista,
+  // ordenados pela criação, já que não há como posicioná-los no dia.
+  if (first.startTime && second.startTime) {
+    return (
+      second.startTime.localeCompare(first.startTime) ||
+      second.createdAt.localeCompare(first.createdAt)
+    );
+  }
+  if (first.startTime) return -1;
+  if (second.startTime) return 1;
+  return second.createdAt.localeCompare(first.createdAt);
+}
 function compareSubjectsByName(first, second) {
   return first.name.localeCompare(second.name, "pt-BR", { sensitivity: "base" });
 }
@@ -1067,8 +1086,9 @@ function formatDuration(minutes) {
   const rest = minutes % 60;
   return hours ? `${hours}h${rest ? ` ${rest}min` : ""}` : `${rest}min`;
 }
-function formatStudyStart(entry) {
-  return entry.startTime ? `Início: ${entry.startTime}` : "";
+function formatStudyPeriod(entry) {
+  if (!entry.startTime) return "";
+  return entry.endTime ? `${entry.startTime} às ${entry.endTime}` : entry.startTime;
 }
 function formatHistoryDate(value) {
   const date = new Date(`${value}T12:00:00`);
