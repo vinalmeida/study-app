@@ -281,17 +281,17 @@ function renderHistory() {
   $("#history-list").innerHTML =
     Object.keys(groups)
       .map((date) => {
-        const entries = groups[date];
-        const dayTotal = entries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
+        // Uma única lista ordenada: o cabeçalho e as linhas do dia não podem divergir.
+        const dayEntries = [...groups[date]].reverse();
+        const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.durationMinutes, 0);
         const subjects = [
-          ...new Map(entries.map((entry) => [entry.subjectId, subjectById(entry.subjectId)])).values(),
+          ...new Map(dayEntries.map((entry) => [entry.subjectId, subjectById(entry.subjectId)])).values(),
         ];
-        const entryRows = [...entries]
-          .reverse()
+        const entryRows = dayEntries
           .map((entry) => {
             const subject = subjectById(entry.subjectId);
             const studyPeriod = formatStudyPeriod(entry);
-            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}</span></div>${studyPeriod ? `<p class="history-entry-time">${studyPeriod}</p>` : ""}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
+            return `<li><span class="history-marker" style="--entry:${subject?.color || colors[0]}"></span><div class="history-entry-content"><div class="history-entry-heading"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span>${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyPeriod ? ` | ${studyPeriod}` : ""}</span></div>${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : `<p class="muted-note">Sem anotações neste registro.</p>`}</div></li>`;
           })
           .join("");
         return `<article class="history-day"><header class="history-day-header"><div><span class="history-date">${formatHistoryDate(date)}</span><div class="history-subjects">${subjects.map((subject) => `<span class="history-subject"><i style="background:${subject?.color || colors[0]}"></i>${escapeHtml(subject?.name || "Disciplina removida")}</span>`).join("")}</div></div><div class="history-day-total"><span>Total do dia</span><strong>${formatDuration(dayTotal)}</strong></div></header><ol class="history-entries">${entryRows}</ol></article>`;
