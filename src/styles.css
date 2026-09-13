@@ -105,3 +105,5 @@
 .duration-field span{padding-right:12px;color:var(--muted);font-size:.8rem;font-weight:500}
 @media(max-width:520px){.study-time-row{grid-template-columns:1fr}}
 .data-load-error{margin:0 0 18px;padding:14px 18px;border:1px solid #eabcbc;border-radius:12px;background:#fff0f0;color:#923838;font-size:.86rem}
+.selected-day-total{margin:8px 0 0;color:var(--muted);font-size:.75rem;line-height:1.4}
+.selected-day-total strong{color:var(--ink);font-size:.9rem;font-weight:750}
