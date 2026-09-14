@@ -50,5 +50,20 @@ next-env.d.ts
 /infraestrutura-study-app.xmind
 /infraestrutura-study-app.md
 
+# instruções e estado internos dos agentes
+/AGENTS.md
+/CLAUDE.md
+/HANDOFF.md
+/docs/DECISIONS.md
+
+# configuração local de hospedagem e credenciais
+/.openai/
+*.key
+*.p8
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+
 #arquivos .bat
 *.bat
