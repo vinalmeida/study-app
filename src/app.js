@@ -228,6 +228,7 @@ function renderSelectedDay() {
   const entries = state.entries
     .filter((entry) => entry.studyDate === state.selectedDate)
     .sort(compareEntriesByStudyStart);
+  $("#selected-day-total-row").hidden = entries.length === 0;
   $("#selected-day-total").textContent = formatDuration(
     entries.reduce((sum, entry) => sum + entry.durationMinutes, 0),
   );
