@@ -67,5 +67,5 @@ next-env.d.ts
 
 #arquivos .bat
 *.bat
-
 *.example
+*.env.example
