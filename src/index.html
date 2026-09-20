@@ -106,7 +106,22 @@
       <p id="data-load-error" class="data-load-error" role="alert" hidden>Não foi possível carregar seus registros. Atualize a página para tentar novamente.</p>
 
       <section id="calendar-view" class="page-view">
-        <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+        <div class="overview-row">
+          <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+          <section class="contribution-card" aria-labelledby="contribution-title">
+            <header class="contribution-header"><div><span class="eyebrow">CONSTÂNCIA</span><strong id="contribution-title">Mapa de estudos</strong></div><span id="contribution-study-days">0 dias de estudo no último ano</span></header>
+            <div class="contribution-scroll">
+              <div class="contribution-chart">
+                <div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
+                <div class="contribution-body">
+                  <div class="contribution-weekdays" aria-hidden="true"><span style="grid-row:2">SEG</span><span style="grid-row:4">QUA</span><span style="grid-row:6">SEX</span></div>
+                  <div id="contribution-grid" class="contribution-grid" role="grid" aria-label="Tempo estudado por dia nos últimos doze meses"></div>
+                </div>
+              </div>
+            </div>
+            <footer class="contribution-legend" aria-label="Escala de intensidade: de zero a mais de cinco horas"><span>Menos</span><span class="contribution-cell" data-level="0"></span><span class="contribution-cell" data-level="1"></span><span class="contribution-cell" data-level="2"></span><span class="contribution-cell" data-level="3"></span><span class="contribution-cell" data-level="4"></span><span class="contribution-cell" data-level="5"></span><span class="contribution-cell" data-level="6"></span><span>Mais</span></footer>
+          </section>
+        </div>
 
         <section class="workspace">
           <div class="calendar-card">
