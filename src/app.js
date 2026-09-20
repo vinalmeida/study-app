@@ -296,14 +296,16 @@ function renderStudyContributions() {
       const studyLabel = day.minutes
         ? `${formatDuration(day.minutes)} de estudo, intensidade ${day.level} de 6`
         : "nenhum estudo";
-      return `<span class="contribution-cell" data-level="${day.level}" role="gridcell" aria-label="${dateLabel}: ${studyLabel}" title="${dateLabel}: ${studyLabel}"></span>`;
+      const currentDateAttribute =
+        day.date === contributionCalendar.centerDate ? ` data-current-date="true"` : "";
+      return `<span class="contribution-cell" data-level="${day.level}" data-date="${day.date}"${currentDateAttribute} role="gridcell" aria-label="${dateLabel}: ${studyLabel}" title="${dateLabel}: ${studyLabel}"></span>`;
     })
     .join("");
 
   $("#contribution-study-days").textContent =
     contributionCalendar.studyDays === 1
-      ? "1 dia de estudo no último ano"
-      : `${contributionCalendar.studyDays} dias de estudo no último ano`;
+      ? "1 dia de estudo no período exibido"
+      : `${contributionCalendar.studyDays} dias de estudo no período exibido`;
   $("#contribution-months").style.setProperty(
     "--contribution-weeks",
     contributionCalendar.weeks.length,
@@ -314,6 +316,14 @@ function renderStudyContributions() {
     contributionCalendar.weeks.length,
   );
   $("#contribution-grid").innerHTML = cells;
+  const contributionScroll = $("#contribution-scroll");
+  const currentDateCell = $("#contribution-grid [data-current-date]");
+  if (currentDateCell) {
+    const scrollBounds = contributionScroll.getBoundingClientRect();
+    const cellBounds = currentDateCell.getBoundingClientRect();
+    contributionScroll.scrollLeft +=
+      cellBounds.left + cellBounds.width / 2 - (scrollBounds.left + scrollBounds.width / 2);
+  }
 }
 
 function renderHistory() {

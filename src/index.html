@@ -106,23 +106,6 @@
       <p id="data-load-error" class="data-load-error" role="alert" hidden>Não foi possível carregar seus registros. Atualize a página para tentar novamente.</p>
 
       <section id="calendar-view" class="page-view">
-        <div class="overview-row">
-          <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
-          <section class="contribution-card" aria-labelledby="contribution-title">
-            <header class="contribution-header"><div><span class="eyebrow">CONSTÂNCIA</span><strong id="contribution-title">Mapa de estudos</strong></div><span id="contribution-study-days">0 dias de estudo no último ano</span></header>
-            <div class="contribution-scroll">
-              <div class="contribution-chart">
-                <div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
-                <div class="contribution-body">
-                  <div class="contribution-weekdays" aria-hidden="true"><span style="grid-row:2">SEG</span><span style="grid-row:4">QUA</span><span style="grid-row:6">SEX</span></div>
-                  <div id="contribution-grid" class="contribution-grid" role="grid" aria-label="Tempo estudado por dia nos últimos doze meses"></div>
-                </div>
-              </div>
-            </div>
-            <footer class="contribution-legend" aria-label="Escala de intensidade: de zero a mais de cinco horas"><span>Menos</span><span class="contribution-cell" data-level="0"></span><span class="contribution-cell" data-level="1"></span><span class="contribution-cell" data-level="2"></span><span class="contribution-cell" data-level="3"></span><span class="contribution-cell" data-level="4"></span><span class="contribution-cell" data-level="5"></span><span class="contribution-cell" data-level="6"></span><span>Mais</span></footer>
-          </section>
-        </div>
-
         <section class="workspace">
           <div class="calendar-card">
             <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
@@ -131,6 +114,23 @@
           </div>
           <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2><p class="selected-day-total" id="selected-day-total-row" hidden>Total do dia: <strong id="selected-day-total">0min</strong></p></div><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div><div id="day-entries" class="day-entries"></div></aside>
         </section>
+
+        <div class="overview-row">
+          <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+          <section class="contribution-card" aria-labelledby="contribution-title">
+            <header class="contribution-header"><div><span class="eyebrow">CONSTÂNCIA</span><strong id="contribution-title">Mapa de estudos</strong></div><span id="contribution-study-days">0 dias de estudo no período exibido</span></header>
+            <div id="contribution-scroll" class="contribution-scroll">
+              <div class="contribution-chart">
+                <div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
+                <div class="contribution-body">
+                  <div class="contribution-weekdays" aria-hidden="true"><span style="grid-row:2">SEG</span><span style="grid-row:4">QUA</span><span style="grid-row:6">SEX</span></div>
+                  <div id="contribution-grid" class="contribution-grid" role="grid" aria-label="Tempo estudado por dia em um período de um ano centralizado na data atual"></div>
+                </div>
+              </div>
+            </div>
+            <footer class="contribution-legend" aria-label="Escala de intensidade: de zero a mais de cinco horas"><span>Menos</span><span class="contribution-cell" data-level="0"></span><span class="contribution-cell" data-level="1"></span><span class="contribution-cell" data-level="2"></span><span class="contribution-cell" data-level="3"></span><span class="contribution-cell" data-level="4"></span><span class="contribution-cell" data-level="5"></span><span class="contribution-cell" data-level="6"></span><span>Mais</span></footer>
+          </section>
+        </div>
       </section>
 
       <section id="history-view" class="page-view" hidden>
