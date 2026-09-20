@@ -302,10 +302,6 @@ function renderStudyContributions() {
     })
     .join("");
 
-  $("#contribution-study-days").textContent =
-    contributionCalendar.studyDays === 1
-      ? "1 dia de estudo no período exibido"
-      : `${contributionCalendar.studyDays} dias de estudo no período exibido`;
   $("#contribution-months").style.setProperty(
     "--contribution-weeks",
     contributionCalendar.weeks.length,
