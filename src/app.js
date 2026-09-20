@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { addMinutesToStudyTime, formatStudyTimeInput, normalizeStudyTime } from "./study-time.js";
 import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
+import { buildStudyContributionCalendar } from "./study-contributions.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -151,6 +152,7 @@ function render() {
   renderCalendar();
   renderSelectedDay();
   renderSummary();
+  renderStudyContributions();
   renderHistory();
   renderStatistics();
   renderView();
@@ -269,6 +271,55 @@ function renderSummary() {
   $("#today-label").textContent = new Date()
     .toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
     .toUpperCase();
+}
+
+function renderStudyContributions() {
+  const contributionCalendar = buildStudyContributionCalendar(state.entries);
+  const monthLabels = contributionCalendar.monthLabels
+    .map(
+      ({ month, weekIndex }) =>
+        `<span style="grid-column:${weekIndex + 2}">${monthNames[month].slice(0, 3)}</span>`,
+    )
+    .join("");
+  const cells = contributionCalendar.weeks
+    .flat()
+    .map((day) => {
+      if (!day.isInRange) {
+        return `<span class="contribution-cell outside-range" aria-hidden="true"></span>`;
+      }
+      const date = new Date(`${day.date}T12:00:00`);
+      const dateLabel = date.toLocaleDateString("pt-BR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const studyLabel = day.minutes
+        ? `${formatDuration(day.minutes)} de estudo, intensidade ${day.level} de 6`
+        : "nenhum estudo";
+      const currentDateAttribute =
+        day.date === contributionCalendar.centerDate ? ` data-current-date="true"` : "";
+      return `<span class="contribution-cell" data-level="${day.level}" data-date="${day.date}"${currentDateAttribute} role="gridcell" aria-label="${dateLabel}: ${studyLabel}" title="${dateLabel}: ${studyLabel}"></span>`;
+    })
+    .join("");
+
+  $("#contribution-months").style.setProperty(
+    "--contribution-weeks",
+    contributionCalendar.weeks.length,
+  );
+  $("#contribution-months").innerHTML = monthLabels;
+  $("#contribution-grid").style.setProperty(
+    "--contribution-weeks",
+    contributionCalendar.weeks.length,
+  );
+  $("#contribution-grid").innerHTML = cells;
+  const contributionScroll = $("#contribution-scroll");
+  const currentDateCell = $("#contribution-grid [data-current-date]");
+  if (currentDateCell) {
+    const scrollBounds = contributionScroll.getBoundingClientRect();
+    const cellBounds = currentDateCell.getBoundingClientRect();
+    contributionScroll.scrollLeft +=
+      cellBounds.left + cellBounds.width / 2 - (scrollBounds.left + scrollBounds.width / 2);
+  }
 }
 
 function renderHistory() {

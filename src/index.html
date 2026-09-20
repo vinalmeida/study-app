@@ -106,15 +106,31 @@
       <p id="data-load-error" class="data-load-error" role="alert" hidden>Não foi possível carregar seus registros. Atualize a página para tentar novamente.</p>
 
       <section id="calendar-view" class="page-view">
-        <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+        <section class="workspace calendar-workspace">
+            <div class="calendar-card">
+              <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
+              <div class="weekday-row" aria-hidden="true"><span class="weekend-label">DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span class="weekend-label">SÁB</span></div>
+              <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
+            </div>
 
-        <section class="workspace">
-          <div class="calendar-card">
-            <div class="calendar-toolbar"><div class="month-control"><button class="icon-button" id="prev-month" type="button" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="month-title"></h2><button class="icon-button" id="next-month" type="button" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div><button class="text-button" id="go-today" type="button">Hoje</button></div>
-            <div class="weekday-row" aria-hidden="true"><span class="weekend-label">DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span class="weekend-label">SÁB</span></div>
-            <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendário mensal"></div>
-          </div>
-          <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2><p class="selected-day-total" id="selected-day-total-row" hidden>Total do dia: <strong id="selected-day-total">0min</strong></p></div><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div><div id="day-entries" class="day-entries"></div></aside>
+            <div class="day-panel-slot">
+              <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2><p class="selected-day-total" id="selected-day-total-row" hidden>Total do dia: <strong id="selected-day-total">0min</strong></p></div><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div><div id="day-entries" class="day-entries"></div></aside>
+            </div>
+
+            <div class="overview-row">
+              <section class="summary-strip" aria-label="Resumo do mês"><div><span>Tempo estudado</span><strong id="month-total">0h</strong></div><div><span>Dias de estudo</span><strong id="study-days">0</strong></div><div><span>Registros</span><strong id="entry-count">0</strong></div></section>
+              <section class="contribution-card" aria-label="Mapa de estudos anual">
+                <div id="contribution-scroll" class="contribution-scroll">
+                  <div class="contribution-chart">
+                    <div id="contribution-months" class="contribution-months" aria-hidden="true"></div>
+                    <div class="contribution-body">
+                      <div class="contribution-weekdays" aria-hidden="true"><span style="grid-row:2">SEG</span><span style="grid-row:4">QUA</span><span style="grid-row:6">SEX</span></div>
+                      <div id="contribution-grid" class="contribution-grid" role="grid" aria-label="Tempo estudado por dia em um período de um ano centralizado na data atual"></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
         </section>
       </section>
 
