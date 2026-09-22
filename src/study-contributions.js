@@ -1,4 +1,4 @@
-const DAYS_ON_EACH_SIDE = 182;
+const DAYS_IN_RANGE = 365;
 
 function dateAtNoon(value) {
   const date = new Date(value);
@@ -36,9 +36,9 @@ export function studyMinutesByDate(entries) {
 }
 
 export function buildStudyContributionCalendar(entries, today = new Date()) {
-  const centerDate = dateAtNoon(today);
-  const rangeStart = addDays(centerDate, -DAYS_ON_EACH_SIDE);
-  const rangeEnd = addDays(centerDate, DAYS_ON_EACH_SIDE);
+  const currentDate = dateAtNoon(today);
+  const rangeStart = addDays(currentDate, -(DAYS_IN_RANGE - 1));
+  const rangeEnd = currentDate;
   const graphStart = addDays(rangeStart, -rangeStart.getDay());
   const graphEnd = addDays(rangeEnd, 6 - rangeEnd.getDay());
   const minutesByDate = studyMinutesByDate(entries);
@@ -82,7 +82,7 @@ export function buildStudyContributionCalendar(entries, today = new Date()) {
     weeks,
     monthLabels,
     studyDays,
-    centerDate: isoDate(centerDate),
+    currentDate: isoDate(currentDate),
     rangeStart: isoDate(rangeStart),
     rangeEnd: isoDate(rangeEnd),
   };
