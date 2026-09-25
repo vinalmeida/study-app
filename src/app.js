@@ -297,7 +297,7 @@ function renderStudyContributions() {
         ? `${formatDuration(day.minutes)} de estudo, intensidade ${day.level} de 6`
         : "nenhum estudo";
       const currentDateAttribute =
-        day.date === contributionCalendar.centerDate ? ` data-current-date="true"` : "";
+        day.date === contributionCalendar.currentDate ? ` data-current-date="true"` : "";
       return `<span class="contribution-cell" data-level="${day.level}" data-date="${day.date}"${currentDateAttribute} role="gridcell" aria-label="${dateLabel}: ${studyLabel}" title="${dateLabel}: ${studyLabel}"></span>`;
     })
     .join("");
@@ -313,13 +313,7 @@ function renderStudyContributions() {
   );
   $("#contribution-grid").innerHTML = cells;
   const contributionScroll = $("#contribution-scroll");
-  const currentDateCell = $("#contribution-grid [data-current-date]");
-  if (currentDateCell) {
-    const scrollBounds = contributionScroll.getBoundingClientRect();
-    const cellBounds = currentDateCell.getBoundingClientRect();
-    contributionScroll.scrollLeft +=
-      cellBounds.left + cellBounds.width / 2 - (scrollBounds.left + scrollBounds.width / 2);
-  }
+  contributionScroll.scrollLeft = contributionScroll.scrollWidth;
 }
 
 function renderHistory() {

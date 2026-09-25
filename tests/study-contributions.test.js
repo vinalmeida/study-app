@@ -32,23 +32,23 @@ test("soma todos os registros feitos na mesma data", () => {
   assert.equal(totals.has("data-invalida"), false);
 });
 
-test("centraliza o período de um ano na data atual e ignora registros fora dele", () => {
+test("encerra o período de um ano na data atual e ignora registros fora dele", () => {
   const calendar = buildStudyContributionCalendar(
     [
-      { studyDate: "2026-03-21", durationMinutes: 60 },
-      { studyDate: "2026-03-22", durationMinutes: 60 },
+      { studyDate: "2025-09-20", durationMinutes: 60 },
+      { studyDate: "2025-09-21", durationMinutes: 60 },
       { studyDate: "2026-09-20", durationMinutes: 301 },
     ],
     new Date(2026, 8, 20, 12),
   );
   const days = calendar.weeks.flat();
 
-  assert.equal(calendar.rangeStart, "2026-03-22");
-  assert.equal(calendar.centerDate, "2026-09-20");
-  assert.equal(calendar.rangeEnd, "2027-03-21");
-  assert.equal(days[0].date, "2026-03-22");
-  assert.equal(calendar.weeks[26][0].date, "2026-09-20");
-  assert.equal(days.at(-1).date, "2027-03-27");
+  assert.equal(calendar.rangeStart, "2025-09-21");
+  assert.equal(calendar.currentDate, "2026-09-20");
+  assert.equal(calendar.rangeEnd, "2026-09-20");
+  assert.equal(days[0].date, "2025-09-21");
+  assert.equal(calendar.weeks.at(-1)[0].date, "2026-09-20");
+  assert.equal(days.at(-1).date, "2026-09-26");
   assert.equal(calendar.weeks.length, 53);
   assert.equal(calendar.studyDays, 2);
   assert.equal(days.find((day) => day.date === "2026-09-20").level, 6);
