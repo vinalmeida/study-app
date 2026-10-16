@@ -69,3 +69,6 @@ next-env.d.ts
 *.bat
 *.example
 *.env.example
+
+# banco local e backups
+/data/

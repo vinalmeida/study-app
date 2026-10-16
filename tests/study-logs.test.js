@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createClient } from "@supabase/supabase-js";
+import { DatabaseSync } from "node:sqlite";
+import { createLocalClient } from "../src/local-client.js";
+import { createSchema, runQuery } from "../server/db.js";
 import { fetchStudyLogs, saveStudyLog } from "../src/study-logs.js";
 import { normalizeStudyTime } from "../src/study-time.js";
 
@@ -55,20 +57,20 @@ test("não descarta o horário nem repete a gravação quando falta a coluna", a
 test("00:30 permanece após salvar, recarregar e editar um registro de 1h", async () => {
   let stored = { id: "registro-existente", studied_on: "2026-09-12", minutes: 60, start_time: null, notes: "Anotações antigas" };
   const writes = [];
-  const client = createClient("https://study-tests.supabase.co", "test-key", {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: {
-      fetch: async (url, options) => {
-        if (options.method === "PATCH") {
-          assert.equal(new URL(url).searchParams.get("id"), "eq.registro-existente");
-          const values = JSON.parse(options.body);
-          writes.push(values);
-          stored = { ...stored, ...values, start_time: `${values.start_time}:00` };
-        }
-        return new Response(JSON.stringify([stored]), { status: 200, headers: { "Content-Type": "application/json" } });
-      },
-    },
-  });
+  // Banco em memória atrás do cliente local, como o servidor faz em server/index.js.
+  const db = new DatabaseSync(":memory:");
+  createSchema(db);
+  db.prepare("INSERT INTO subjects (id,user_id,name) VALUES ('disciplina','local','Cálculo')").run();
+  db.prepare("INSERT INTO study_logs (id,user_id,subject_id,studied_on,minutes,kind,notes,start_time) VALUES (?,?,?,?,?,?,?,?)")
+    .run(stored.id, "local", "disciplina", "2026-09-15", stored.minutes, "teoria", stored.notes, stored.start_time);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    const query = JSON.parse(options.body);
+    if (query.op === "update") writes.push(query.values);
+    return new Response(JSON.stringify({ data: runQuery(db, query), error: null }));
+  };
+  test.after(() => { globalThis.fetch = originalFetch; });
+  const client = createLocalClient();
 
   const saved = await saveStudyLog(client, { minutes: 60, start_time: "00:30", notes: stored.notes }, stored.id);
   assert.equal(normalizeStudyTime(saved.rows[0].start_time), "00:30");

@@ -1,57 +1,67 @@
 # Study App
 
-Aplicação web responsiva para registrar e acompanhar atividades de estudo pelo computador, tablet ou celular.
-
-## Aplicação online
-
-Acesse a versão publicada em: [cadernoestudos.vercel.app](https://cadernoestudos.vercel.app)
+Aplicação web para registrar e acompanhar atividades de estudo. Roda **localmente**
+no computador, com os dados num arquivo SQLite e cópia automática para uma pasta
+sincronizada na nuvem (por exemplo, o Google Drive).
 
 ## Funcionalidades atuais
 
 - Cadastro, edição e remoção de disciplinas.
-- Acesso com e-mail e senha ou conta Google.
-- Cadastro de conta e recuperação de senha por e-mail.
 - Calendário mensal com os registros de cada dia.
 - Cadastro, edição e remoção de registros de estudo.
 - Registro de tempo de estudo com horário de início em horas e minutos.
 - Classificação entre teoria e exercícios.
 - Anotações sobre o conteúdo estudado.
-- Resumo mensal e semanal.
+- Histórico, estatísticas, resumo mensal e semanal e mapa de estudos.
+- Backup automático do banco a cada alteração.
 
-## Executar localmente
+## Executar
 
 ### Requisitos
 
-- Node.js 22 ou superior.
+- Node.js 22.13 ou superior (usa o `node:sqlite` embutido).
 - pnpm.
 
-### Passos
+### Uso diário
 
 ```bash
-git clone https://github.com/vinalmeida/study-app.git
-cd study-app
-pnpm dev
+pnpm install
+pnpm start
 ```
 
-Depois, acesse `http://localhost:5173` no navegador.
+Abra `http://127.0.0.1:5174`. O `pnpm start` gera o build e sobe o servidor local,
+que serve o app e a API de dados. No Windows, o `start-study-app.bat` faz isso e
+abre o navegador.
 
-Crie um arquivo `.env.local` a partir de `.env.example` e informe a URL e a chave
-pública (`anon`) do projeto Supabase. O banco deve receber a migration presente
-em `supabase/migrations`.
+### Desenvolvimento
 
-## Gerar a versão de produção
+Em dois terminais:
 
 ```bash
-pnpm build
+pnpm server   # API e banco em http://127.0.0.1:5174
+pnpm dev      # Vite em http://127.0.0.1:5173, com /api redirecionado ao servidor
+```
+
+### Dados e backup
+
+- Banco: `data/caderno.db` (fora do Git).
+- Cópias: `data/backups/` e, se `BACKUP_DIR` estiver definido no `.env.local`, também
+  nessa pasta. Exemplo: `BACKUP_DIR=~/My Drive/Caderno de Estudos`.
+- Cada pasta guarda `caderno-atual.db` e uma cópia por dia (últimos 30 dias).
+- Para restaurar, pare o servidor e copie um desses arquivos para `data/caderno.db`.
+
+### Importar um backup do Supabase
+
+```bash
+pnpm import-backup data/supabase-backup.gz
 ```
 
 ## Tecnologias
 
 - HTML, CSS, JavaScript e Vite.
-- Supabase Auth, Postgres e Row Level Security.
-- Vercel para build, CDN e hospedagem.
+- Node.js (`node:http` e `node:sqlite`), sem dependências de produção.
 
-## Status
+## Histórico
 
-Em desenvolvimento. A versão atual contém calendário, histórico, acesso com Google
-ou e-mail e senha, recuperação de acesso e isolamento dos registros por usuário.
+Até outubro de 2026 o app usava Supabase (Auth e Postgres) e era publicado na Vercel.
+Foi migrado para execução local para não depender de manutenção de produção.
