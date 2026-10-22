@@ -1,0 +1,35 @@
+# Mantém o projeto Supabase (plano gratuito) ativo: ele é pausado após ~7 dias
+# sem requisições. Duas consultas por semana evitam a pausa.
+# Requer os secrets SUPABASE_URL e SUPABASE_ANON_KEY (Settings → Secrets and variables → Actions).
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 14 * * 1,4" # segundas e quintas, 11h17 em São Paulo
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consultar o banco
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Configure os secrets SUPABASE_URL e SUPABASE_ANON_KEY no repositório."
+            exit 1
+          fi
+          status=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 --retry 3 --retry-delay 20 \
+            "${SUPABASE_URL%/}/rest/v1/subjects?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY") || status="erro"
+          echo "Supabase respondeu: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::O Supabase não respondeu 200 ($status). O projeto pode estar pausado: abra o painel e clique em Resume project."
+            exit 1
+          fi
