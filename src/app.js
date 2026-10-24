@@ -2,6 +2,20 @@ import { createClient } from "@supabase/supabase-js";
 import { addMinutesToStudyTime, formatStudyTimeInput, normalizeStudyTime } from "./study-time.js";
 import { fetchStudyLogs, saveStudyLog } from "./study-logs.js";
 import { buildStudyContributionCalendar } from "./study-contributions.js";
+import {
+  assessmentBadgeLabel,
+  assessmentDisplayName,
+  assessmentKind,
+  assessmentKinds,
+  compareAssessments,
+  daysUntil,
+  deleteAssessment,
+  fetchAssessments,
+  formatDaysUntil,
+  isExam,
+  normalizeAssessment,
+  saveAssessment,
+} from "./assessments.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -34,6 +48,8 @@ const state = {
   selectedDate: isoDate(new Date()),
   subjects: [],
   entries: [],
+  assessments: [],
+  assessmentsAvailable: true,
   view: routeViews[location.pathname] || "calendar",
 };
 const $ = (selector) => document.querySelector(selector);
@@ -43,6 +59,7 @@ let toastTimer;
 let authView = new URLSearchParams(location.search).get("recovery") === "1" ? "reset" : "login";
 let editingEntryId = null;
 let editingSubjectId = null;
+let editingAssessmentId = null;
 
 function assertResult(result) {
   if (result.error) throw result.error;
@@ -69,9 +86,10 @@ function normalizeEntry(row) {
 async function loadState() {
   if (!currentUser) return;
   try {
-    const [subjectsResult, logsResult] = await Promise.all([
+    const [subjectsResult, logsResult, assessmentsResult] = await Promise.all([
       supabase.from("subjects").select("id,name,color").eq("archived", false).order("name"),
       fetchStudyLogs(supabase),
+      fetchAssessments(supabase),
     ]);
     state.subjects = assertResult(subjectsResult).map((row) => ({
       id: row.id,
@@ -79,6 +97,8 @@ async function loadState() {
       color: row.color,
     }));
     state.entries = logsResult.rows.map(normalizeEntry);
+    state.assessments = assessmentsResult.rows.map(normalizeAssessment);
+    state.assessmentsAvailable = assessmentsResult.available;
     $("#data-load-error").hidden = true;
     render();
   } catch (error) {
@@ -118,6 +138,7 @@ function showSession(session) {
   else {
     state.subjects = [];
     state.entries = [];
+    state.assessments = [];
     $("#data-load-error").hidden = true;
     render();
   }
@@ -215,9 +236,50 @@ function renderCalendar() {
         return `<div class="event-chip" style="--chip:${subject?.color || colors[0]}" data-duration="${formatDuration(entry.durationMinutes)}"><span>${escapeHtml(subject?.name || "Disciplina")} · ${formatDuration(entry.durationMinutes)}</span></div>`;
       })
       .join("");
-    html += `<button type="button" role="gridcell" class="calendar-day ${isWeekend ? "weekend" : ""} ${isOutsideMonth ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${entries.length ? `, ${entries.length} registros` : ""}"><span class="day-number ${isMonthBoundary ? "month-boundary" : ""}">${dayLabel}</span><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
+    const assessments = assessmentsOn(iso);
+    const assessmentSummary = assessments
+      .map((assessment) => `${assessmentDisplayName(assessment)} de ${subjectById(assessment.subjectId)?.name || "disciplina removida"}`)
+      .join(", ");
+    html += `<button type="button" role="gridcell" class="calendar-day ${isWeekend ? "weekend" : ""} ${isOutsideMonth ? "outside" : ""} ${iso === today ? "today" : ""} ${iso === state.selectedDate ? "selected" : ""} ${assessments.some(isExam) ? "has-exam" : ""}" data-date="${iso}" aria-label="${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}${assessments.length ? `, ${escapeHtml(assessmentSummary)}` : ""}${entries.length ? `, ${entries.length} registros` : ""}"><div class="day-head"><span class="day-number ${isMonthBoundary ? "month-boundary" : ""}">${dayLabel}</span>${renderAssessmentBadges(assessments)}</div><div class="event-chips">${chips}${entries.length > 2 ? `<span class="more-chip">+${entries.length - 2} registros</span>` : ""}</div></button>`;
   }
   $("#calendar-grid").innerHTML = html;
+}
+
+function assessmentsOn(iso) {
+  return state.assessments
+    .filter((assessment) => assessment.dueDate === iso)
+    .sort(compareAssessments);
+}
+
+function renderAssessmentBadges(assessments) {
+  if (!assessments.length) return "";
+  const visible = assessments.slice(0, 2);
+  const badges = visible
+    .map((assessment) => {
+      const subject = subjectById(assessment.subjectId);
+      const color = subject ? safeSubjectColor(subject.color) : "#9ba3b4";
+      const title = `${assessmentDisplayName(assessment)} · ${subject?.name || "Disciplina removida"}`;
+      return `<span class="assessment-badge ${isExam(assessment) ? "exam" : "delivery"}" style="--badge:${color}" title="${escapeHtml(title)}">${escapeHtml(assessmentBadgeLabel(assessment))}</span>`;
+    })
+    .join("");
+  const extra = assessments.length - visible.length;
+  return `<span class="assessment-badges" aria-hidden="true">${badges}${extra ? `<span class="assessment-badge more" title="${extra} outras marcações">+${extra}</span>` : ""}</span>`;
+}
+
+function renderDayAssessments() {
+  const assessments = assessmentsOn(state.selectedDate);
+  if (!assessments.length) return "";
+  const today = isoDate(new Date());
+  const cards = assessments
+    .map((assessment) => {
+      const subject = subjectById(assessment.subjectId);
+      const color = subject ? safeSubjectColor(subject.color) : "#9ba3b4";
+      const kind = assessmentKind(assessment.kind);
+      const countdown = formatDaysUntil(daysUntil(assessment.dueDate, today));
+      return `<article class="assessment-card ${isExam(assessment) ? "exam" : "delivery"}" style="--badge:${color}"><span class="assessment-badge ${isExam(assessment) ? "exam" : "delivery"}">${escapeHtml(assessmentBadgeLabel(assessment))}</span><div class="assessment-card-body"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><span class="assessment-card-meta">${escapeHtml(assessment.title || kind.label)} · ${countdown}</span>${assessment.notes ? `<p class="entry-notes">${escapeHtml(assessment.notes)}</p>` : ""}</div><div class="entry-actions"><button class="edit-entry" type="button" data-edit-assessment="${assessment.id}" aria-label="Editar marcação" title="Editar marcação"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-assessment="${assessment.id}" aria-label="Remover marcação" title="Remover marcação">×</button></div></article>`;
+    })
+    .join("");
+  return `<section class="day-assessments" aria-label="Provas e entregas do dia"><span class="eyebrow">PROVAS E ENTREGAS</span>${cards}</section>`;
 }
 
 function renderSelectedDay() {
@@ -234,15 +296,17 @@ function renderSelectedDay() {
   $("#selected-day-total").textContent = formatDuration(
     entries.reduce((sum, entry) => sum + entry.durationMinutes, 0),
   );
+  const assessmentsHtml = renderDayAssessments();
   $("#day-entries").innerHTML =
-    entries
+    assessmentsHtml +
+    (entries
       .map((entry) => {
         const subject = subjectById(entry.subjectId);
         const studyPeriod = formatStudyPeriod(entry);
         return `<article class="entry-card" style="--entry:${subject?.color || colors[0]}"><div class="entry-top"><strong>${escapeHtml(subject?.name || "Disciplina removida")}</strong><div class="entry-actions"><button class="edit-entry" type="button" data-edit-entry="${entry.id}" aria-label="Editar registro" title="Editar registro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.5 6.5 3 3"/></svg></button><button class="delete-entry" type="button" data-delete-entry="${entry.id}" aria-label="Remover registro" title="Remover registro">×</button></div></div><div class="entry-meta">${formatDuration(entry.durationMinutes)} · ${entry.studyType === "theory" ? "Teoria" : "Exercícios"}${studyPeriod ? ` | ${studyPeriod}` : ""}</div>${entry.notes ? `<p class="entry-notes">${escapeHtml(entry.notes)}</p>` : ""}</article>`;
       })
       .join("") ||
-    `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`;
+    `<div class="empty-state ${assessmentsHtml ? "compact" : ""}"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></div><strong>Nenhum estudo registrado</strong><p>Adicione o que você estudou neste dia.</p></div>`);
 }
 
 function renderSummary() {
@@ -616,6 +680,52 @@ function openSubjects() {
   $("#subjects-dialog").showModal();
 }
 
+function openAssessment(date = state.selectedDate, assessment = null) {
+  if (!state.assessmentsAvailable) {
+    showToast("Marcações indisponíveis: a atualização do banco ainda não foi aplicada.");
+    return;
+  }
+  if (!state.subjects.length) {
+    openSubjects();
+    showToast("Crie uma disciplina antes de marcar uma prova.");
+    return;
+  }
+  const form = $("#assessment-form");
+  form.reset();
+  editingAssessmentId = assessment?.id || null;
+  const dueDate = assessment?.dueDate || date;
+  $("#assessment-date").value = formatBrazilianDate(dueDate);
+  $("#assessment-date-picker").value = dueDate;
+  const sortedSubjects = [...state.subjects].sort(compareSubjectsByName);
+  const selectedSubjectId = subjectById(assessment?.subjectId)
+    ? assessment.subjectId
+    : sortedSubjects[0].id;
+  $("#assessment-subject-options").innerHTML = sortedSubjects
+    .map(
+      (subject) =>
+        `<label class="assessment-subject-option"><input type="radio" name="subjectId" value="${escapeHtml(subject.id)}" ${String(subject.id) === String(selectedSubjectId) ? "checked" : ""} required /><span><i class="subject-dot" style="background:${safeSubjectColor(subject.color)}" aria-hidden="true"></i>${escapeHtml(subject.name)}</span></label>`,
+    )
+    .join("");
+  const selectedKind = assessment?.kind || "p1";
+  const kindGroup = (group, label) =>
+    `<div class="assessment-kind-group"><span class="assessment-kind-group-label">${label}</span><div class="assessment-kind-chips">${assessmentKinds
+      .filter((kind) => kind.group === group)
+      .map(
+        (kind) =>
+          `<label class="assessment-kind-option ${group}"><input type="radio" name="kind" value="${kind.value}" ${kind.value === selectedKind ? "checked" : ""} required /><span>${kind.label}</span></label>`,
+      )
+      .join("")}</div></div>`;
+  $("#assessment-kind-options").innerHTML = kindGroup("exam", "Provas") + kindGroup("delivery", "Entregas");
+  form.elements.title.value = assessment?.title || "";
+  form.elements.notes.value = assessment?.notes || "";
+  $("#assessment-dialog-eyebrow").textContent = assessment ? "EDITAR MARCAÇÃO" : "MARCAR NO CALENDÁRIO";
+  $("#assessment-dialog-title").textContent = assessment ? "Atualize a marcação" : "Prova ou entrega";
+  $("#assessment-submit").textContent = assessment ? "Salvar alterações" : "Marcar";
+  $("#assessment-submit").disabled = false;
+  $("#assessment-error").textContent = "";
+  $("#assessment-dialog").showModal();
+}
+
 $("#google-sign-in").addEventListener("click", async () => {
   if (!supabase) return;
   const button = $("#google-sign-in");
@@ -787,6 +897,75 @@ $("#go-today").addEventListener("click", () => {
 });
 $("#new-entry").addEventListener("click", () => openEntry());
 $("#add-selected").addEventListener("click", () => openEntry());
+$("#add-assessment").addEventListener("click", () => openAssessment());
+$$('.close-assessment').forEach((button) =>
+  button.addEventListener("click", () => $("#assessment-dialog").close()),
+);
+$("#assessment-date").addEventListener("input", (event) => {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+  event.target.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]
+    .filter(Boolean)
+    .join("/");
+});
+$("#open-assessment-date-picker").addEventListener("click", () => {
+  const picker = $("#assessment-date-picker");
+  const typedDate = parseBrazilianDate($("#assessment-date").value);
+  if (typedDate) picker.value = typedDate;
+  if (typeof picker.showPicker === "function") picker.showPicker();
+  else picker.click();
+});
+$("#assessment-date-picker").addEventListener("change", (event) => {
+  if (event.target.value) $("#assessment-date").value = formatBrazilianDate(event.target.value);
+});
+
+$("#assessment-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const dueDate = parseBrazilianDate(form.get("date"));
+  if (!dueDate) {
+    $("#assessment-error").textContent = "Informe uma data válida no formato dd/mm/aaaa.";
+    $("#assessment-date").focus();
+    return;
+  }
+  if (!form.get("subjectId") || !form.get("kind")) {
+    $("#assessment-error").textContent = "Escolha a disciplina e o tipo.";
+    return;
+  }
+  const assessmentId = editingAssessmentId;
+  const submitButton = $("#assessment-submit");
+  const submitLabel = submitButton.textContent;
+  submitButton.disabled = true;
+  submitButton.textContent = "Salvando…";
+  try {
+    const values = {
+      subject_id: form.get("subjectId"),
+      due_on: dueDate,
+      kind: form.get("kind"),
+      title: String(form.get("title") || "").trim(),
+      notes: String(form.get("notes") || ""),
+    };
+    if (!assessmentId) values.user_id = currentUser.id;
+    const assessment = normalizeAssessment(await saveAssessment(supabase, values, assessmentId));
+    if (assessmentId) {
+      state.assessments = state.assessments.map((item) => (item.id === assessmentId ? assessment : item));
+    } else {
+      state.assessments.push(assessment);
+    }
+    state.selectedDate = assessment.dueDate;
+    state.month = new Date(`${assessment.dueDate}T12:00:00`);
+    $("#assessment-dialog").close();
+    render();
+    showToast(assessmentId ? "Marcação atualizada." : `${assessmentDisplayName(assessment)} marcada no calendário.`);
+  } catch (error) {
+    console.error(error);
+    $("#assessment-error").textContent = assessmentId
+      ? "Não foi possível atualizar a marcação."
+      : "Não foi possível salvar a marcação.";
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = submitLabel;
+  }
+});
 $("#manage-subjects").addEventListener("click", openSubjects);
 $("#mobile-subjects").addEventListener("click", openSubjects);
 $$('.close-dialog').forEach((button) =>
@@ -1064,6 +1243,27 @@ $("#manage-subject-list").addEventListener("click", async (event) => {
 });
 
 $("#day-entries").addEventListener("click", async (event) => {
+  const editAssessmentButton = event.target.closest("[data-edit-assessment]");
+  if (editAssessmentButton) {
+    const assessment = state.assessments.find((item) => item.id === editAssessmentButton.dataset.editAssessment);
+    if (assessment) openAssessment(assessment.dueDate, assessment);
+    return;
+  }
+  const deleteAssessmentButton = event.target.closest("[data-delete-assessment]");
+  if (deleteAssessmentButton) {
+    const id = deleteAssessmentButton.dataset.deleteAssessment;
+    if (!confirm("Remover esta marcação do calendário?")) return;
+    try {
+      await deleteAssessment(supabase, id);
+      state.assessments = state.assessments.filter((item) => item.id !== id);
+      render();
+      showToast("Marcação removida.");
+    } catch (error) {
+      console.error(error);
+      showToast("Não foi possível remover a marcação.");
+    }
+    return;
+  }
   const editButton = event.target.closest("[data-edit-entry]");
   if (editButton) {
     const entry = state.entries.find((item) => item.id === editButton.dataset.editEntry);

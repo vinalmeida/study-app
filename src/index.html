@@ -114,7 +114,7 @@
             </div>
 
             <div class="day-panel-slot">
-              <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2><p class="selected-day-total" id="selected-day-total-row" hidden>Total do dia: <strong id="selected-day-total">0min</strong></p></div><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div><div id="day-entries" class="day-entries"></div></aside>
+              <aside class="day-panel" aria-label="Registros do dia selecionado"><div class="day-panel-header"><div><span class="eyebrow">DIA SELECIONADO</span><h2 id="selected-day-title">Hoje</h2><p class="selected-day-total" id="selected-day-total-row" hidden>Total do dia: <strong id="selected-day-total">0min</strong></p></div><div class="day-panel-actions"><button class="small-secondary" id="add-assessment" type="button" title="Marcar prova ou entrega neste dia" aria-label="Marcar prova ou entrega neste dia" aria-label="Marcar prova ou entrega neste dia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Prova/entrega</span></button><button class="small-primary" id="add-selected" type="button"><span aria-hidden="true">+</span><span>Adicionar</span></button></div></div><div id="day-entries" class="day-entries"></div></aside>
             </div>
 
             <div class="overview-row">
@@ -179,6 +179,21 @@
       </div>
       <p id="entry-error" class="form-error" role="alert"></p>
       <div class="modal-actions"><button class="secondary-button close-dialog" type="button">Cancelar</button><button id="entry-submit" class="primary-button" type="submit">Salvar registro</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="assessment-dialog" class="modal">
+    <form id="assessment-form" method="dialog" class="modal-card">
+      <div class="modal-header"><div><span id="assessment-dialog-eyebrow" class="eyebrow">MARCAR NO CALENDÁRIO</span><h2 id="assessment-dialog-title">Prova ou entrega</h2></div><button class="icon-button close-assessment" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="form-grid">
+        <label class="full-width">Data<div class="date-control"><input id="assessment-date" name="date" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="dd/mm/aaaa" aria-label="Data no formato dia, mês e ano" required /><button id="open-assessment-date-picker" class="date-picker-button" type="button" aria-label="Abrir calendário"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button><input id="assessment-date-picker" class="native-date-picker" type="date" tabindex="-1" aria-hidden="true" /></div></label>
+        <fieldset class="full-width"><legend>Disciplina</legend><div id="assessment-subject-options" class="assessment-subject-options"></div></fieldset>
+        <fieldset class="full-width"><legend>Tipo</legend><div id="assessment-kind-options" class="assessment-kind-options"></div></fieldset>
+        <label class="full-width"><span>Título <span class="optional-hint">(opcional)</span></span><input id="assessment-title" name="title" type="text" maxlength="60" autocomplete="off" placeholder="Ex.: EP2, Relatório 3, capítulos 1 a 4" /></label>
+        <label class="full-width"><span>Anotações <span class="optional-hint">(opcional)</span></span><textarea name="notes" rows="3" maxlength="600" placeholder="Ex.: conteúdo da prova, sala, link de entrega..."></textarea></label>
+      </div>
+      <p id="assessment-error" class="form-error" role="alert"></p>
+      <div class="modal-actions"><button class="secondary-button close-assessment" type="button">Cancelar</button><button id="assessment-submit" class="primary-button" type="submit">Marcar</button></div>
     </form>
   </dialog>
 
