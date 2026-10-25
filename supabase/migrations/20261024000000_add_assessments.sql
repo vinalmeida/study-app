@@ -1,5 +1,19 @@
 begin;
 
+-- O banco real não tinha esta regra (a migration de 2026-09-10 não foi aplicada por
+-- completo); como o id já é único, ela nunca conflita com dados existentes.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.subjects'::regclass
+      and conname = 'subjects_id_user_id_key'
+  ) then
+    alter table public.subjects
+      add constraint subjects_id_user_id_key unique (id, user_id);
+  end if;
+end $$;
+
 create table if not exists public.assessments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -41,3 +55,5 @@ create policy "assessments_owner"
   );
 
 commit;
+
+notify pgrst, 'reload schema';
