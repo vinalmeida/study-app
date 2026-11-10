@@ -14,7 +14,7 @@
 .auth-panel>p.auth-lead{margin:0;color:var(--muted);font-size:1.02rem;line-height:1.6;text-align:center}
 .auth-highlights{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:20px 0 0;padding:0;list-style:none}
 .auth-highlights li{padding:6px 12px;border-radius:999px;background:#eef1ff;color:var(--primary-dark);font-size:.76rem;font-weight:700}
-.auth-access{margin-top:28px;padding-top:24px;border-top:1px solid var(--line)}
+.auth-access{margin-top:28px;padding-top:24px;border-top:1px solid var(--line);text-align:center}
 .auth-access h2{margin:0;font-size:1rem;font-weight:700;color:var(--ink)}
 .auth-access p{margin:4px 0 0;color:var(--muted);font-size:.86rem;line-height:1.5}
 .oauth-button{width:100%;min-height:52px;margin-top:16px;padding:0 18px;border:0;border-radius:14px;background:var(--primary);display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font-weight:700;font-size:.98rem;cursor:pointer;box-shadow:0 12px 28px rgba(64,92,245,.35);transition:background .15s,transform .15s,box-shadow .15s}
